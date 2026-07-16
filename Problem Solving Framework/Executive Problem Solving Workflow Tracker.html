@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Workflow Tracker — Business Problem Resolution</title>
+    <style>
+        :root {
+            --bg-primary: #f0fdfa;
+            --bg-card: #ffffff;
+            --bg-card-alt: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --border-light: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --accent-teal: #0d9488;
+            --accent-teal-light: #14b8a6;
+            --accent-teal-dark: #0f766e;
+            --accent-olive: #708238;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --progress-incomplete: #cbd5e1;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:var(--font-sans); background:var(--bg-primary); color:var(--text-primary); line-height:1.6; min-height:100vh; }
+        .header { background:#ffffff; border-bottom:1px solid var(--border); padding:0 28px; height:64px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:var(--shadow-sm); }
+        .header-left { display:flex; align-items:center; gap:16px; }
+        .header-logo { width:38px; height:38px; border-radius:var(--radius-sm); background:linear-gradient(135deg,var(--accent-teal),var(--accent-teal-dark)); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; color:#ffffff; }
+        .header-title { font-size:17px; font-weight:700; color:var(--text-primary); }
+        .header-subtitle { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1.2px; font-weight:500; }
+        .header-right { display:flex; align-items:center; gap:10px; }
+        .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:var(--transition); font-family:var(--font-sans); white-space:nowrap; }
+        .btn-outline { background:transparent; border-color:var(--border-light); color:var(--text-secondary); }
+        .btn-outline:hover { border-color:var(--accent-teal); color:var(--accent-teal-dark); background:rgba(13,148,136,0.04); }
+        .btn-accent { background:var(--accent-teal); color:#ffffff; border-color:var(--accent-teal); font-weight:700; }
+        .btn-accent:hover { background:var(--accent-teal-dark); }
+        .btn-sm { padding:6px 11px; font-size:11px; border-radius:4px; }
+        .btn-xs { padding:4px 8px; font-size:10px; border-radius:4px; }
+        .btn-danger-sm { background:transparent; border:1px solid var(--danger); color:var(--danger); }
+        .btn-edit { background:transparent; border:none; color:var(--accent-teal); cursor:pointer; font-size:13px; padding:2px 6px; border-radius:4px; }
+        .progress-bar-wrap { height:4px; background:var(--progress-incomplete); border-radius:2px; overflow:hidden; flex:1; max-width:220px; min-width:100px; }
+        .progress-bar-fill { height:100%; background:linear-gradient(90deg,var(--accent-teal),#2dd4bf); border-radius:2px; transition:width 0.5s ease; }
+        .progress-percent { font-size:12px; font-weight:700; color:var(--accent-teal-dark); min-width:40px; text-align:right; font-family:var(--font-mono); }
+        .main-container { display:flex; min-height:calc(100vh - 64px); }
+        .sidebar { width:260px; min-width:260px; background:#ffffff; border-right:1px solid var(--border); padding:20px 0; display:flex; flex-direction:column; gap:2px; overflow-y:auto; position:sticky; top:64px; height:calc(100vh - 64px); }
+        .sidebar-step { display:flex; align-items:center; gap:12px; padding:12px 20px; cursor:pointer; transition:var(--transition); border-left:3px solid transparent; font-size:13px; font-weight:500; color:var(--text-secondary); user-select:none; }
+        .sidebar-step:hover { background:rgba(13,148,136,0.04); color:var(--text-primary); }
+        .sidebar-step.active { background:rgba(13,148,136,0.08); border-left-color:var(--accent-teal); color:var(--accent-teal-dark); font-weight:600; }
+        .sidebar-step .step-num { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; background:var(--progress-incomplete); color:var(--text-muted); }
+        .sidebar-step.status-in-progress .step-num { background:var(--warning-bg); color:var(--warning); }
+        .sidebar-step.status-complete .step-num { background:var(--success-bg); color:var(--success); }
+        .sidebar-step .step-status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--progress-incomplete); margin-left:auto; }
+        .sidebar-step.status-in-progress .step-status-dot { background:var(--warning); animation:pulse-dot 1.8s infinite; }
+        .sidebar-step.status-complete .step-status-dot { background:var(--success); }
+        @keyframes pulse-dot { 0%,100%{ box-shadow:0 0 0 0 rgba(217,119,6,0.4); } 50%{ box-shadow:0 0 0 10px rgba(217,119,6,0); } }
+        .sidebar-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-muted); padding:16px 20px 6px; font-weight:700; }
+        .sidebar-problem .step-num { background:var(--accent-olive); color:#fff; font-weight:800; }
+        .content { flex:1; padding:28px 32px; overflow-y:auto; height:calc(100vh - 64px); scroll-behavior:smooth; }
+        .section-card { background:var(--bg-card); border:1px solid var(--border-light); border-radius:var(--radius-lg); padding:24px 28px; margin-bottom:20px; box-shadow:var(--shadow-sm); scroll-margin-top:80px; }
+        .section-card.highlighted { border-color:var(--accent-teal); box-shadow:0 0 0 2px rgba(13,148,136,0.12),var(--shadow-md); }
+        .section-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:12px; }
+        .section-card-title { font-size:16px; font-weight:700; display:flex; align-items:center; gap:10px; color:var(--text-primary); }
+        .step-badge { width:30px; height:30px; border-radius:50%; font-size:12px; font-weight:800; background:var(--accent-teal); color:#fff; display:flex; align-items:center; justify-content:center; }
+        .problem-badge { background:var(--accent-olive); color:#fff; width:32px; height:32px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; }
+        .status-select { padding:7px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-light); background:var(--bg-input); color:var(--text-primary); font-size:12px; font-weight:500; cursor:pointer; min-width:140px; }
+        .checklist-item { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+        .checklist-item input[type="checkbox"] { accent-color:var(--accent-teal); width:16px; height:16px; }
+        .checklist-item label { font-size:14px; cursor:pointer; }
+        .outcome-box { margin-top:16px; }
+        .table-wrap { overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border-light); background:#fff; margin-top:16px; }
+        table { width:100%; border-collapse:collapse; font-size:13px; min-width:900px; }
+        table thead th { background:#f8fafc; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.6px; font-size:10px; padding:11px 10px; border-bottom:2px solid var(--border); text-align:left; }
+        table thead th.col-num { text-align:center; width:70px; }
+        table tbody td { padding:8px 10px; border-bottom:1px solid var(--border-light); vertical-align:middle; }
+        table tbody tr:hover td { background:#f0fdfa; }
+        table tbody tr:last-child td { border-bottom:none; }
+        table input[type="text"], table input[type="number"] { width:100%; padding:7px 9px; border-radius:4px; border:1px solid var(--border-light); background:var(--bg-input); color:var(--text-primary); font-size:12px; font-family:var(--font-sans); }
+        table input[type="number"] { text-align:center; width:60px; font-family:var(--font-mono); font-weight:600; }
+        table input:focus { outline:none; border-color:var(--accent-teal); box-shadow:0 0 0 2px rgba(13,148,136,0.1); }
+        .rpn-cell { font-weight:700; font-family:var(--font-mono); text-align:center; font-size:13px; padding:4px 8px; border-radius:4px; display:inline-block; min-width:55px; }
+        .rpn-high { background:#fee2e2; color:#b91c1c; }
+        .rpn-medium { background:#fef3c7; color:#b45309; }
+        .rpn-low { background:#dcfce7; color:#15803d; }
+        .add-row-btn { margin-top:12px; }
+        .notes-area { width:100%; min-height:80px; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-light); background:var(--bg-input); color:var(--text-primary); font-size:13px; resize:vertical; }
+        .tag { display:inline-block; padding:3px 9px; border-radius:20px; font-size:10px; font-weight:600; }
+        .tag-not-started { background:#f1f5f9; color:#64748b; }
+        .tag-in-progress { background:#fef3c7; color:#b45309; }
+        .tag-complete { background:#dcfce7; color:#15803d; }
+        .info-text { font-size:12px; color:var(--text-muted); margin-top:6px; font-style:italic; }
+        .toast { position:fixed; bottom:30px; right:30px; background:#ffffff; border:1px solid var(--accent-teal); color:var(--text-primary); padding:14px 20px; border-radius:var(--radius); font-weight:600; font-size:13px; z-index:999; box-shadow:var(--shadow-lg); opacity:0; transform:translateY(20px); transition:all 0.35s ease; pointer-events:none; }
+        .toast.show { opacity:1; transform:translateY(0); }
+
+        /* ─── PROFESSIONAL ROOT CAUSE INPUT STYLING ─── */
+        div[data-pareto-id] {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        div[data-pareto-id]:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        div[data-pareto-id] input[type="text"] {
+            border: none;
+            background: transparent;
+            padding: 8px 4px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #0f172a;
+            outline: none;
+            width: 100%;
+            border-radius: 4px;
+        }
+        div[data-pareto-id] input[type="text"]:focus {
+            background: rgba(13, 148, 136, 0.03);
+        }
+        div[data-pareto-id] button.btn-danger-sm {
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 14px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.15s;
+            line-height: 1;
+        }
+        div[data-pareto-id] button.btn-danger-sm:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="header-logo">W</div>
+            <div>
+                <div class="header-title">Executive Workflow Tracker</div>
+                <div class="header-subtitle">Business Problem Resolution Pipeline</div>
+            </div>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="globalProgressFill"></div></div>
+        <span class="progress-percent" id="globalProgressPercent">0%</span>
+        <div class="header-right">
+            <button class="btn btn-outline btn-sm" onclick="exportData()">⬇ Export</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFileInput').click()">⬆ Import</button>
+            <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+            <button class="btn btn-accent btn-sm" onclick="resetAllData()">↺ Reset</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-label">Problem Statement</div>
+            <div class="sidebar-step sidebar-problem status-not-started" data-step="0" onclick="scrollToStep(0)">
+                <span class="step-num">P</span> Problem Statement
+                <span class="step-status-dot"></span>
+            </div>
+            <div class="sidebar-label">Workflow Steps</div>
+            <div class="sidebar-step status-not-started" data-step="1" onclick="scrollToStep(1)"><span class="step-num">1</span> MECE Tree Outcome</div>
+            <div class="sidebar-step status-not-started" data-step="2" onclick="scrollToStep(2)"><span class="step-num">2</span> Root Cause Validation</div>
+            <div class="sidebar-step status-not-started" data-step="3" onclick="scrollToStep(3)"><span class="step-num">3</span> FMEA & Pareto</div>
+            <div class="sidebar-step status-not-started" data-step="4" onclick="scrollToStep(4)"><span class="step-num">4</span> Root Cause Prioritization</div>
+            <div class="sidebar-step status-not-started" data-step="5" onclick="scrollToStep(5)"><span class="step-num">5</span> Executive KPI Generation</div>
+            <div class="sidebar-step status-not-started" data-step="6" onclick="scrollToStep(6)"><span class="step-num">6</span> KPI Analysis</div>
+            <div class="sidebar-step status-not-started" data-step="7" onclick="scrollToStep(7)"><span class="step-num">7</span> Executive Insights</div>
+            <div class="sidebar-step status-not-started" data-step="8" onclick="scrollToStep(8)"><span class="step-num">8</span> Action Plan</div>
+            <div class="sidebar-step status-not-started" data-step="9" onclick="scrollToStep(9)"><span class="step-num">9</span> Outcome Monitoring</div>
+        </nav>
+        <main class="content" id="contentArea"></main>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ─── ENTIRE JAVASCRIPT REMAINS EXACTLY THE SAME ───
+        (function() {
+            const DEFAULT_DATA = {
+                problemStatement: { text: '', status: 'not-started' },
+                steps: {
+                    1: { status: 'not-started', title: 'MECE Tree Outcome', notes: 'Break down the business problem using MECE logic.', data: {} },
+                    2: {
+                        status: 'not-started', title: 'Root Cause Validation',
+                        notes: 'Validate hypotheses from the MECE tree with data.',
+                        data: { checklist: { hypothesesValidated: false, statisticalData: false, eliminatedCauses: false }, outcomeNotes: '' }
+                    },
+                    3: {
+                        status: 'not-started', title: 'FMEA Analysis & Pareto Analysis',
+                        notes: 'Identify vital few root causes via Pareto, then perform FMEA.',
+                        data: { paretoDone: false, paretoRootCauses: [], fmeaRows: [] }
+                    },
+                    4: {
+                        status: 'not-started', title: 'Root Cause Prioritization',
+                        notes: 'Prioritize using RPN, Business Impact, Cost, Feasibility.',
+                        data: { prioritizationRows: [] }
+                    },
+                    5: { 
+                        status: 'not-started', title: 'Executive KPI Generation', 
+                        notes: 'Define KPIs with targets and owners.',
+                        data: { 
+                            kpiRows: [
+                                { id: 1, kpiName: 'On-Time Delivery Rate', target: '98%', current: '87%', owner: 'Supply Chain Dir.' },
+                                { id: 2, kpiName: 'Defect Rate (PPM)', target: '<500 PPM', current: '1,200 PPM', owner: 'Quality Manager' },
+                                { id: 3, kpiName: 'System Uptime', target: '99.99%', current: '99.7%', owner: 'CTO' }
+                            ] 
+                        }
+                    },
+                    6: { status: 'not-started', title: 'KPI Analysis', notes: 'Analyze KPI trends, gaps, and correlations.', data: {} },
+                    7: { status: 'not-started', title: 'Executive Insights', notes: 'Synthesize findings into executive-level insights.', data: {} },
+                    8: { 
+                        status: 'not-started', title: 'Action Plan',
+                        notes: 'Define specific actions, owners, deadlines.',
+                        data: { 
+                            actionItems: [
+                                { id: 1, action: 'Diversify supplier base', owner: 'Procurement', deadline: '2026-09-15', status: 'Planned' },
+                                { id: 2, action: 'Implement automated inspection', owner: 'Quality', deadline: '2026-08-30', status: 'Planned' },
+                                { id: 3, action: 'Upgrade server infrastructure', owner: 'IT', deadline: '2026-10-01', status: 'Planned' }
+                            ] 
+                        }
+                    },
+                    9: { 
+                        status: 'not-started', title: 'Outcome Monitoring',
+                        notes: 'Track outcomes against KPIs post-implementation.',
+                        data: { 
+                            monitoringItems: [
+                                { id: 1, metric: 'On-Time Delivery Rate', baseline: '87%', target: '98%', currentReading: '', trend: '—' },
+                                { id: 2, metric: 'Defect Rate (PPM)', baseline: '1,200', target: '<500', currentReading: '', trend: '—' },
+                                { id: 3, metric: 'System Uptime', baseline: '99.7%', target: '99.99%', currentReading: '', trend: '—' }
+                            ] 
+                        }
+                    },
+                }
+            };
+
+            let workflowData = loadFromStorage() || JSON.parse(JSON.stringify(DEFAULT_DATA));
+
+            function loadFromStorage() {
+                try { return JSON.parse(localStorage.getItem('execWorkflowV6')); } catch (e) { return null; }
+            }
+            function saveToStorage() { localStorage.setItem('execWorkflowV6', JSON.stringify(workflowData)); }
+
+            function recalcPrioritizationScores() {
+                workflowData.steps[4].data.prioritizationRows.forEach(row => {
+                    row.totalScore = Math.round((row.rpn/10)*30 + row.businessImpact*35 + row.cost*20 + row.feasibility*15);
+                });
+            }
+
+            function alignFMEARows() {
+                const step3 = workflowData.steps[3];
+                if (!step3.data.paretoDone) return;
+                const paretos = step3.data.paretoRootCauses;
+                const fmeaRows = step3.data.fmeaRows;
+                paretos.forEach(rc => {
+                    const existing = fmeaRows.some(r => r.rootCauseId === rc.id);
+                    if (!existing) {
+                        const id = fmeaRows.length ? Math.max(...fmeaRows.map(r => r.id)) + 1 : 1;
+                        fmeaRows.push({
+                            id, rootCauseId: rc.id, rootCauseText: rc.rootCauseText,
+                            failureMode: '', effect: '', cause: '', severity: 5, occurrence: 5, detection: 5,
+                            rpn: null, rpnEdited: false
+                        });
+                    }
+                });
+                const validIds = new Set(paretos.map(r => r.id));
+                step3.data.fmeaRows = fmeaRows.filter(r => validIds.has(r.rootCauseId));
+            }
+
+            function syncPrioritizationFromPareto() {
+                const step3 = workflowData.steps[3];
+                const step4 = workflowData.steps[4];
+                if (!step3.data.paretoDone) {
+                    step4.data.prioritizationRows = step4.data.prioritizationRows.filter(r => !r.autoGenerated);
+                    return;
+                }
+                const paretos = step3.data.paretoRootCauses;
+                const prioRows = step4.data.prioritizationRows;
+                const usedParetoIds = new Set();
+                prioRows.forEach(row => {
+                    if (row.autoGenerated && row.paretoRootCauseId) {
+                        usedParetoIds.add(row.paretoRootCauseId);
+                        const rc = paretos.find(p => p.id === row.paretoRootCauseId);
+                        if (rc) {
+                            row.rootCause = rc.rootCauseText;
+                        } else {
+                            row._remove = true;
+                        }
+                    }
+                });
+                step4.data.prioritizationRows = prioRows.filter(r => !r._remove);
+                paretos.forEach(rc => {
+                    if (!usedParetoIds.has(rc.id)) {
+                        const id = step4.data.prioritizationRows.length ? Math.max(...step4.data.prioritizationRows.map(r => r.id)) + 1 : 1;
+                        step4.data.prioritizationRows.push({
+                            id,
+                            rootCause: rc.rootCauseText,
+                            rpn: 0,
+                            businessImpact: 5,
+                            cost: 5,
+                            feasibility: 5,
+                            totalScore: 0,
+                            autoGenerated: true,
+                            paretoRootCauseId: rc.id
+                        });
+                    }
+                });
+                recalcPrioritizationScores();
+            }
+
+            function renderAll() {
+                alignFMEARows();
+                syncPrioritizationFromPareto();
+                recalcPrioritizationScores();
+                saveToStorage();
+                const content = document.getElementById('contentArea');
+                let html = '';
+                const ps = workflowData.problemStatement;
+                html += `
+                <div class="section-card" id="step-card-0">
+                  <div class="section-card-header">
+                    <div class="section-card-title"><span class="problem-badge">P</span> Business Problem Statement <span class="tag ${tagClass(ps.status)}">${statusLabel(ps.status)}</span></div>
+                    <select class="status-select" onchange="updateStepStatus(0, this.value)">
+                      <option value="not-started" ${ps.status==='not-started'?'selected':''}>○ Not Started</option>
+                      <option value="in-progress" ${ps.status==='in-progress'?'selected':''}>◉ In Progress</option>
+                      <option value="complete" ${ps.status==='complete'?'selected':''}>● Complete</option>
+                    </select>
+                  </div>
+                  <textarea class="notes-area" onchange="updateProblemStatement(this.value)">${escapeHtml(ps.text)}</textarea>
+                </div>`;
+                for (let i = 1; i <= 9; i++) {
+                    const step = workflowData.steps[i];
+                    const highlighted = step.status === 'in-progress' ? ' highlighted' : '';
+                    html += `
+                <div class="section-card${highlighted}" id="step-card-${i}">
+                  <div class="section-card-header">
+                    <div class="section-card-title"><span class="step-badge">${i}</span> ${step.title} <span class="tag ${tagClass(step.status)}">${statusLabel(step.status)}</span></div>
+                    <select class="status-select" onchange="updateStepStatus(${i}, this.value)">
+                      <option value="not-started" ${step.status==='not-started'?'selected':''}>○ Not Started</option>
+                      <option value="in-progress" ${step.status==='in-progress'?'selected':''}>◉ In Progress</option>
+                      <option value="complete" ${step.status==='complete'?'selected':''}>● Complete</option>
+                    </select>
+                  </div>
+                  <textarea class="notes-area" onchange="updateStepNotes(${i}, this.value)">${escapeHtml(step.notes||'')}</textarea>
+                  ${renderStepContent(i, step)}
+                </div>`;
+                }
+                content.innerHTML = html;
+                updateSidebar();
+                updateGlobalProgress();
+            }
+
+            function renderStepContent(num, step) {
+                if (num === 2) return renderValidation(step);
+                if (num === 3) return renderFMEAandPareto(step);
+                if (num === 4) return renderPrioritization(step);
+                if (num === 5) return renderKPITable(step);
+                if (num === 6 || num === 7) return '';
+                if (num === 8) return renderActionPlan(step);
+                if (num === 9) return renderMonitoring(step);
+                return '';
+            }
+
+            function renderValidation(step) {
+                const d = step.data;
+                return `
+                <div class="checklist-item"><input type="checkbox" id="chk_hyp" ${d.checklist.hypothesesValidated?'checked':''} onchange="updateChecklist(2,'hypothesesValidated',this.checked)"><label for="chk_hyp">✅ Hypotheses from MECE tree validated with data source</label></div>
+                <div class="checklist-item"><input type="checkbox" id="chk_stat" ${d.checklist.statisticalData?'checked':''} onchange="updateChecklist(2,'statisticalData',this.checked)"><label for="chk_stat">📊 Validated with Statistical Data</label></div>
+                <div class="checklist-item"><input type="checkbox" id="chk_elim" ${d.checklist.eliminatedCauses?'checked':''} onchange="updateChecklist(2,'eliminatedCauses',this.checked)"><label for="chk_elim">🗑 Eliminated unwanted cause from MECE tree</label></div>
+                <div class="outcome-box"><label style="font-weight:600;">📝 Outcome / Comments</label><textarea class="notes-area" style="margin-top:6px;" onchange="updateOutcomeNotes(2, this.value)">${escapeHtml(d.outcomeNotes||'')}</textarea></div>`;
+            }
+
+            function renderFMEAandPareto(step) {
+                const d = step.data;
+                const paretoDone = d.paretoDone;
+                const rootCauses = d.paretoRootCauses || [];
+                const fmeaRows = d.fmeaRows || [];
+                let paretoSection = `
+                <div class="checklist-item"><input type="checkbox" id="paretoDoneCheck" ${paretoDone?'checked':''} onchange="updateParetoDone(this.checked)"><label for="paretoDoneCheck"><strong>📌 Pareto Analysis Completed</strong></label></div>`;
+                if (paretoDone) {
+                    paretoSection += `
+                  <div style="margin-top:12px;"><label style="font-weight:600;">Root Causes from Pareto:</label>
+                    <div id="paretoRootCausesList">${rootCauses.map(rc => `
+                      <div style="display:flex; gap:8px; margin:4px 0;" data-pareto-id="${rc.id}">
+                        <input type="text" value="${escapeHtml(rc.rootCauseText)}" onchange="updateParetoRootCause(${rc.id}, this.value)" style="flex:1;">
+                        <button class="btn btn-danger-sm btn-xs" onclick="deleteParetoRootCause(${rc.id})">✕</button>
+                      </div>`).join('')}</div>
+                    <button class="btn btn-outline btn-sm add-row-btn" onclick="addParetoRootCause()">+ Add Root Cause</button>
+                  </div>`;
+                }
+                let fmeaSection = '';
+                if (paretoDone && rootCauses.length > 0) {
+                    fmeaSection = `
+                  <div style="margin-top:20px; border-top:1px solid var(--border-light); padding-top:16px;">
+                    <h4 style="margin-bottom:12px;">🔍 FMEA for Identified Root Causes</h4>
+                    <div class="table-wrap">
+                      <table>
+                        <thead><tr><th>Root Cause (Pareto)</th><th>Failure Mode</th><th>Effect</th><th>Cause</th><th class="col-num">Severity</th><th class="col-num">Occurence</th><th class="col-num">Detection</th><th class="col-num">RPN</th><th></th></tr></thead>
+                        <tbody>${fmeaRows.map(row => renderFMEARow(row)).join('')}</tbody>
+                      </table>
+                    </div>
+                    <p class="info-text">💡 RPN is auto‑calculated (S×O×D).Click ✎ to edit manually.</p>
+                  </div>`;
+                } else if (paretoDone && rootCauses.length === 0) {
+                    fmeaSection = '<p style="margin-top:12px; color:var(--text-muted);">Add at least one root cause from Pareto to start FMEA.</p>';
+                }
+                return paretoSection + fmeaSection;
+            }
+
+            function renderFMEARow(row) {
+                const rpn = (row.rpn !== undefined && row.rpn !== null) ? row.rpn : (row.severity||0)*(row.occurrence||0)*(row.detection||0);
+                let rpnClass = 'rpn-low';
+                if (rpn >= 150) rpnClass = 'rpn-high';
+                else if (rpn >= 80) rpnClass = 'rpn-medium';
+                return `
+                <tr data-fmea-id="${row.id}">
+                  <td>${escapeHtml(row.rootCauseText)}</td>
+                  <td><input type="text" value="${escapeHtml(row.failureMode)}" onchange="updateFMEACell(${row.id},'failureMode',this.value)"></td>
+                  <td><input type="text" value="${escapeHtml(row.effect)}" onchange="updateFMEACell(${row.id},'effect',this.value)"></td>
+                  <td><input type="text" value="${escapeHtml(row.cause)}" onchange="updateFMEACell(${row.id},'cause',this.value)"></td>
+                  <td class="col-num"><input type="number" min="1" max="10" value="${row.severity}" onchange="updateFMEACell(${row.id},'severity',parseInt(this.value)||1)"></td>
+                  <td class="col-num"><input type="number" min="1" max="10" value="${row.occurrence}" onchange="updateFMEACell(${row.id},'occurrence',parseInt(this.value)||1)"></td>
+                  <td class="col-num"><input type="number" min="1" max="10" value="${row.detection}" onchange="updateFMEACell(${row.id},'detection',parseInt(this.value)||1)"></td>
+                  <td class="col-num">${row.rpnEdited ? `<input type="number" value="${rpn}" style="width:60px;" onchange="updateFMEACell(${row.id},'rpn',parseInt(this.value)||0)">` : `<span class="rpn-cell ${rpnClass}">${rpn}</span>`}<button class="btn-edit" onclick="toggleRPNEdit(${row.id})">✎</button></td>
+                  <td><button class="btn btn-danger-sm btn-xs" onclick="deleteFMEARow(${row.id})">✕</button></td>
+                </tr>`;
+            }
+
+            function renderPrioritization(step) {
+                const rows = step.data.prioritizationRows || [];
+                let rowsHtml = rows.map(row => {
+                    const isAuto = row.autoGenerated;
+                    return `
+                    <tr data-prio-id="${row.id}">
+                      <td>${isAuto ? `<span style="font-weight:500;">${escapeHtml(row.rootCause)}</span>` : `<input type="text" value="${escapeHtml(row.rootCause)}" onchange="updatePrioCell(${row.id},'rootCause',this.value)">`}</td>
+                      <td class="col-num"><input type="number" value="${row.rpn}" onchange="updatePrioCell(${row.id},'rpn',parseInt(this.value)||0)" id="prio-rpn-${row.id}"></td>
+                      <td class="col-num"><input type="number" min="1" max="10" value="${row.businessImpact}" onchange="updatePrioCell(${row.id},'businessImpact',parseInt(this.value)||1)"></td>
+                      <td class="col-num"><input type="number" min="1" max="10" value="${row.cost}" onchange="updatePrioCell(${row.id},'cost',parseInt(this.value)||1)"></td>
+                      <td class="col-num"><input type="number" min="1" max="10" value="${row.feasibility}" onchange="updatePrioCell(${row.id},'feasibility',parseInt(this.value)||1)"></td>
+                      <td class="col-num"><span id="prio-score-${row.id}" class="rpn-cell ${row.totalScore>=500?'rpn-high':row.totalScore>=350?'rpn-medium':'rpn-low'}">${row.totalScore}</span></td>
+                      <td>${isAuto ? '' : `<button class="btn btn-danger-sm btn-xs" onclick="deletePrioRow(${row.id})">✕</button>`}</td>
+                    </tr>`;
+                }).join('');
+                return `
+                <button class="btn btn-outline btn-sm" style="margin-bottom:8px;" onclick="syncRPNFromFMEA()">🔄 Sync RPN from FMEA</button>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Root Cause</th><th class="col-num">RPN (input)</th><th class="col-num">Business Impact</th><th class="col-num">Cost</th><th class="col-num">Feasibility</th><th class="col-num">Weighted Score</th><th></th></tr></thead>
+                    <tbody>${rowsHtml || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No prioritization rows.</td></tr>'}</tbody>
+                  </table>
+                </div>
+                <button class="btn btn-outline btn-sm add-row-btn" onclick="addPrioRow()">+ Add Custom Root Cause</button>
+                <p class="info-text">Weighted Score = RPN(30%) + Business Impact(35%) + Cost(20%) + Feasibility(15%)</p>`;
+            }
+
+            function renderKPITable(step) {
+                const rows = step.data.kpiRows || [];
+                return genericTable('KPI', ['KPI Name','Target','Current','Owner'], rows, 'kpi', ['kpiName','target','current','owner']);
+            }
+            function renderActionPlan(step) {
+                const rows = step.data.actionItems || [];
+                return genericTable('Action', ['Action','Owner','Deadline','Status'], rows, 'action', ['action','owner','deadline','status']);
+            }
+            function renderMonitoring(step) {
+                const rows = step.data.monitoringItems || [];
+                return genericTable('Metric', ['Metric','Baseline','Target','Current Reading','Trend'], rows, 'mon', ['metric','baseline','target','currentReading','trend']);
+            }
+            function genericTable(addLabel, headers, rows, type, fields) {
+                let html = rows.map(r => `<tr data-${type}-id="${r.id}">${fields.map((f,i) => `<td>${f==='status' ? `<select onchange="updateCell('${type}',${r.id},'${f}',this.value)"><option value="Planned" ${r[f]==='Planned'?'selected':''}>Planned</option><option value="In Progress" ${r[f]==='In Progress'?'selected':''}>In Progress</option><option value="Completed" ${r[f]==='Completed'?'selected':''}>Completed</option><option value="Blocked" ${r[f]==='Blocked'?'selected':''}>Blocked</option></select>` : f==='trend' ? `<select onchange="updateCell('${type}',${r.id},'${f}',this.value)"><option value="—" ${r[f]==='—'?'selected':''}>—</option><option value="↑ Improving" ${r[f]==='↑ Improving'?'selected':''}>↑ Improving</option><option value="↓ Declining" ${r[f]==='↓ Declining'?'selected':''}>↓ Declining</option><option value="→ Stable" ${r[f]==='→ Stable'?'selected':''}>→ Stable</option></select>` : `<input type="text" value="${escapeHtml(r[f]||'')}" onchange="updateCell('${type}',${r.id},'${f}',this.value)">`}</td>`).join('')}<td><button class="btn btn-danger-sm btn-xs" onclick="deleteRow('${type}',${r.id})">✕</button></td></tr>`).join('');
+                return `<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}<th></th></tr></thead><tbody>${html||`<tr><td colspan="${headers.length+1}" style="text-align:center;color:var(--text-muted);">No items.</td></tr>`}</tbody></table></div><button class="btn btn-outline btn-sm add-row-btn" onclick="addRow('${type}')">+ Add ${addLabel}</button>`;
+            }
+
+            window.updateStepStatus = (num, val) => { if (num===0) workflowData.problemStatement.status = val; else workflowData.steps[num].status = val; saveToStorage(); renderAll(); };
+            window.updateStepNotes = (num, val) => { workflowData.steps[num].notes = val; saveToStorage(); };
+            window.updateProblemStatement = (val) => { workflowData.problemStatement.text = val; saveToStorage(); };
+            window.updateChecklist = (step, key, val) => { workflowData.steps[step].data.checklist[key] = val; saveToStorage(); };
+            window.updateOutcomeNotes = (step, val) => { workflowData.steps[step].data.outcomeNotes = val; saveToStorage(); };
+            window.updateParetoDone = (checked) => { workflowData.steps[3].data.paretoDone = checked; if (checked) { alignFMEARows(); syncPrioritizationFromPareto(); } else { workflowData.steps[3].data.fmeaRows = []; workflowData.steps[4].data.prioritizationRows = workflowData.steps[4].data.prioritizationRows.filter(r => !r.autoGenerated); } saveToStorage(); renderAll(); };
+            window.addParetoRootCause = () => { const arr = workflowData.steps[3].data.paretoRootCauses; const id = arr.length ? Math.max(...arr.map(r=>r.id))+1 : 1; arr.push({ id, rootCauseText: '' }); alignFMEARows(); syncPrioritizationFromPareto(); saveToStorage(); renderAll(); };
+            window.deleteParetoRootCause = (id) => { workflowData.steps[3].data.paretoRootCauses = workflowData.steps[3].data.paretoRootCauses.filter(r=>r.id!==id); alignFMEARows(); syncPrioritizationFromPareto(); saveToStorage(); renderAll(); };
+            window.updateParetoRootCause = (id, text) => { const rc = workflowData.steps[3].data.paretoRootCauses.find(r=>r.id===id); if (rc) { rc.rootCauseText = text; workflowData.steps[3].data.fmeaRows.forEach(r => { if (r.rootCauseId === id) r.rootCauseText = text; }); workflowData.steps[4].data.prioritizationRows.forEach(r => { if (r.autoGenerated && r.paretoRootCauseId === id) r.rootCause = text; }); saveToStorage(); } };
+            window.deleteFMEARow = (id) => { workflowData.steps[3].data.fmeaRows = workflowData.steps[3].data.fmeaRows.filter(r=>r.id!==id); saveToStorage(); renderAll(); };
+            window.updateFMEACell = (id, field, value) => { const row = workflowData.steps[3].data.fmeaRows.find(r=>r.id===id); if (row) { row[field] = value; if ((field==='severity'||field==='occurrence'||field==='detection') && !row.rpnEdited) row.rpn = null; saveToStorage(); refreshFMEARowDisplay(id); } };
+            window.toggleRPNEdit = (id) => { const row = workflowData.steps[3].data.fmeaRows.find(r=>r.id===id); if (row) { row.rpnEdited = !row.rpnEdited; if (!row.rpnEdited) row.rpn = null; saveToStorage(); renderAll(); } };
+            function refreshFMEARowDisplay(id) { const row = workflowData.steps[3].data.fmeaRows.find(r=>r.id===id); if (!row) return; const tr = document.querySelector(`tr[data-fmea-id="${id}"]`); if (tr) { const rpnTd = tr.children[7]; const rpn = (row.rpn!==undefined && row.rpn!==null) ? row.rpn : (row.severity||0)*(row.occurrence||0)*(row.detection||0); let cls = 'rpn-low'; if (rpn>=150) cls='rpn-high'; else if (rpn>=80) cls='rpn-medium'; if (row.rpnEdited) { rpnTd.innerHTML = `<input type="number" value="${rpn}" style="width:60px;" onchange="updateFMEACell(${id},'rpn',parseInt(this.value)||0)"><button class="btn-edit" onclick="toggleRPNEdit(${id})">✎</button>`; } else { rpnTd.innerHTML = `<span class="rpn-cell ${cls}">${rpn}</span><button class="btn-edit" onclick="toggleRPNEdit(${id})">✎</button>`; } } }
+            window.syncRPNFromFMEA = () => { const fmeaRows = workflowData.steps[3].data.fmeaRows; const prioRows = workflowData.steps[4].data.prioritizationRows; if (!fmeaRows.length) { showToast('No FMEA data to sync', true); return; } prioRows.forEach(prio => { const match = fmeaRows.find(f => f.rootCauseText === prio.rootCause); if (match) { const rpn = (match.rpn!==undefined && match.rpn!==null) ? match.rpn : (match.severity||0)*(match.occurrence||0)*(match.detection||0); prio.rpn = rpn; } }); recalcPrioritizationScores(); saveToStorage(); prioRows.forEach(row => { const rpnInput = document.getElementById(`prio-rpn-${row.id}`); const scoreSpan = document.getElementById(`prio-score-${row.id}`); if (rpnInput) rpnInput.value = row.rpn; if (scoreSpan) { scoreSpan.textContent = row.totalScore; scoreSpan.className = 'rpn-cell ' + (row.totalScore>=500?'rpn-high':row.totalScore>=350?'rpn-medium':'rpn-low'); } }); showToast('RPN synced from FMEA'); };
+            window.addPrioRow = () => { const rows = workflowData.steps[4].data.prioritizationRows; const id = rows.length ? Math.max(...rows.map(r=>r.id))+1 : 1; rows.push({ id, rootCause:'', rpn:0, businessImpact:5, cost:5, feasibility:5, totalScore:0, autoGenerated:false }); recalcPrioritizationScores(); saveToStorage(); renderAll(); };
+            window.deletePrioRow = (id) => { workflowData.steps[4].data.prioritizationRows = workflowData.steps[4].data.prioritizationRows.filter(r=>r.id!==id || r.autoGenerated); recalcPrioritizationScores(); saveToStorage(); renderAll(); };
+            window.updatePrioCell = (id, field, value) => { const row = workflowData.steps[4].data.prioritizationRows.find(r=>r.id===id); if (row) { row[field] = value; recalcPrioritizationScores(); saveToStorage(); const scoreSpan = document.getElementById(`prio-score-${id}`); if (scoreSpan) { scoreSpan.textContent = row.totalScore; scoreSpan.className = 'rpn-cell ' + (row.totalScore>=500?'rpn-high':row.totalScore>=350?'rpn-medium':'rpn-low'); } } };
+            window.updateCell = (type, id, field, value) => { const dataMap = { kpi:5, action:8, mon:9 }; const step = workflowData.steps[dataMap[type]]; const arr = step.data[ type==='kpi'?'kpiRows': type==='action'?'actionItems':'monitoringItems' ]; const row = arr.find(r=>r.id===id); if (row) { row[field] = value; saveToStorage(); } };
+            window.deleteRow = (type, id) => { const dataMap = { kpi:5, action:8, mon:9 }; const step = workflowData.steps[dataMap[type]]; const key = type==='kpi'?'kpiRows': type==='action'?'actionItems':'monitoringItems'; step.data[key] = step.data[key].filter(r=>r.id!==id); saveToStorage(); renderAll(); };
+            window.addRow = (type) => { const dataMap = { kpi:5, action:8, mon:9 }; const step = workflowData.steps[dataMap[type]]; const key = type==='kpi'?'kpiRows': type==='action'?'actionItems':'monitoringItems'; const arr = step.data[key]; const id = arr.length ? Math.max(...arr.map(r=>r.id))+1 : 1; const newObj = type==='kpi' ? { id, kpiName:'', target:'', current:'', owner:'' } : type==='action' ? { id, action:'', owner:'', deadline:'', status:'Planned' } : { id, metric:'', baseline:'', target:'', currentReading:'', trend:'—' }; arr.push(newObj); saveToStorage(); renderAll(); };
+            function updateSidebar() { document.querySelectorAll('.sidebar-step').forEach(el => { const num = parseInt(el.dataset.step); const status = num===0 ? workflowData.problemStatement.status : workflowData.steps[num].status; el.className = `sidebar-step status-${status}`; if (num===0) el.classList.add('sidebar-problem'); }); }
+            function updateGlobalProgress() { let completed = 0; for (let i=1;i<=9;i++) if (workflowData.steps[i].status==='complete') completed++; const pct = Math.round(completed/9*100); document.getElementById('globalProgressFill').style.width = pct+'%'; document.getElementById('globalProgressPercent').textContent = pct+'%'; }
+            window.scrollToStep = (num) => { const card = document.getElementById(`step-card-${num}`); if (card) { card.scrollIntoView({behavior:'smooth'}); card.classList.add('highlighted'); setTimeout(()=>card.classList.remove('highlighted'),1500); } document.querySelectorAll('.sidebar-step').forEach(el=>el.classList.remove('active')); document.querySelector(`.sidebar-step[data-step="${num}"]`)?.classList.add('active'); };
+            window.exportData = () => { const blob = new Blob([JSON.stringify(workflowData,null,2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `executive-workflow-${new Date().toISOString().slice(0,10)}.json`; a.click(); showToast('Exported'); };
+            window.importData = (e) => { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { const data = JSON.parse(ev.target.result); if (data && data.steps && data.problemStatement) { workflowData = data; recalcPrioritizationScores(); alignFMEARows(); syncPrioritizationFromPareto(); saveToStorage(); renderAll(); showToast('Imported'); } else showToast('Invalid file', true); } catch (ex) { showToast('Error parsing file', true); } }; reader.readAsText(file); e.target.value=''; };
+            window.resetAllData = () => { if (confirm('Reset all data to defaults?')) { workflowData = JSON.parse(JSON.stringify(DEFAULT_DATA)); saveToStorage(); renderAll(); showToast('Reset'); } };
+            function showToast(msg, isErr) { const t = document.getElementById('toast'); t.textContent=msg; t.style.borderColor=isErr?'var(--danger)':'var(--accent-teal)'; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+            function tagClass(s) { return s==='complete'?'tag-complete':s==='in-progress'?'tag-in-progress':'tag-not-started'; }
+            function statusLabel(s) { return s==='complete'?'Complete':s==='in-progress'?'In Progress':'Not Started'; }
+            function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+            alignFMEARows();
+            syncPrioritizationFromPareto();
+            recalcPrioritizationScores();
+            renderAll();
+        })();
+    </script>
+</body>
+</html>

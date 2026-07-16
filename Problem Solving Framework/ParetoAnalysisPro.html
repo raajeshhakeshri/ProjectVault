@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pareto Analysis 80/20 Rule</title>
+
+    <style>
+        :root {
+            --bg: #f4f7fc;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --secondary: #7c3aed;
+            --text: #111827;
+            --border: #dbe3f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Segoe UI, Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2563eb, #1e3a8a);
+            color: #fff;
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, .15);
+        }
+
+        .header h1 {
+            margin-bottom: 8px;
+        }
+
+        .timestamp {
+            opacity: .9;
+            font-size: 14px;
+        }
+
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .kpi {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
+        }
+
+        .kpi-title {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid var(--border);
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #eef4ff;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+        }
+
+        .primary {
+            background: var(--primary);
+            color: white;
+        }
+        .success {
+            background: var(--success);
+            color: white;
+        }
+        .danger {
+            background: var(--danger);
+            color: white;
+        }
+        .secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: .9;
+            transform: translateY(-1px);
+        }
+
+        .highlight {
+            background: #dcfce7;
+            font-weight: bold;
+        }
+
+        canvas {
+            width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            display: block;
+        }
+
+        .insight {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 12px;
+            line-height: 1.6;
+        }
+
+        /* ========== PRINT STYLES ========== */
+        @media print {
+
+            /* Force background colors & gradients to print */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            /* Reset body for clean print */
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 11pt;
+                color: #000;
+            }
+
+            .container {
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+
+            /* Hide ALL buttons */
+            .btn {
+                display: none !important;
+            }
+
+            /* Hide the Action column in the input table */
+            #inputTable th:last-child,
+            #inputTable td:last-child {
+                display: none !important;
+            }
+
+            /* Make input fields look like plain text */
+            input {
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: inherit !important;
+                font-family: inherit !important;
+                color: inherit !important;
+                -webkit-appearance: none !important;
+                appearance: none !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                pointer-events: none;
+            }
+
+            /* Preserve number input appearance */
+            input[type="number"] {
+                -moz-appearance: textfield !important;
+                appearance: textfield !important;
+            }
+            input[type="number"]::-webkit-inner-spin-button,
+            input[type="number"]::-webkit-outer-spin-button {
+                -webkit-appearance: none !important;
+                margin: 0 !important;
+            }
+
+            /* Remove card shadows & borders, prevent page breaks inside */
+            .card,
+            .kpi {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                border-radius: 8px !important;
+                margin-bottom: 12px !important;
+                padding: 14px !important;
+            }
+
+            /* Header – preserve gradient for print */
+            .header {
+                box-shadow: none !important;
+                border-radius: 8px !important;
+                background: #2563eb !important;
+                color: #fff !important;
+                padding: 18px !important;
+                margin-bottom: 14px !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .header h1 {
+                font-size: 20pt;
+            }
+            .header div {
+                font-size: 10pt;
+            }
+            .timestamp {
+                font-size: 9pt;
+            }
+
+            /* KPIs – keep them together */
+            .kpis {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 10px !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .kpi {
+                padding: 12px !important;
+                text-align: center !important;
+            }
+            .kpi-title {
+                font-size: 10pt;
+            }
+            .kpi-value {
+                font-size: 22pt;
+                margin-top: 4px;
+            }
+
+            /* Tables */
+            table {
+                font-size: 9pt;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            th {
+                background: #eef4ff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            th,
+            td {
+                padding: 6px 8px !important;
+                border: 1px solid #bbb !important;
+            }
+            .highlight {
+                background: #dcfce7 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Canvas – scale to fit printed page */
+            #paretoCanvas {
+                max-width: 680px !important;
+                width: 100% !important;
+                height: auto !important;
+                border: 1px solid #ccc !important;
+                border-radius: 6px !important;
+                display: block !important;
+                margin: 0 auto !important;
+            }
+
+            /* Insights box */
+            .insight {
+                background: #eff6ff !important;
+                border: 1px solid #cbd5e1 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                font-size: 10pt;
+                padding: 12px !important;
+                border-radius: 6px !important;
+            }
+
+            /* Page setup */
+            @page {
+                size: A4;
+                margin: 0.4in 0.45in;
+            }
+
+            /* Ensure headings stand out */
+            .card h2 {
+                font-size: 13pt;
+                margin-bottom: 10px;
+                color: #1e3a8a;
+            }
+
+            /* Add subtle separators between major sections */
+            .card+.card {
+                margin-top: 6px;
+            }
+        }
+
+        /* ========== RESPONSIVE (SCREEN ONLY) ========== */
+        @media screen and (max-width: 768px) {
+            table {
+                font-size: 12px;
+            }
+            .kpi-value {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📊 Pareto Analysis Pro</h1>
+            <div>Decoding Real Root Cause through Quality Engineering  </div>
+            <div class="timestamp" id="timestamp"></div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpis">
+            <div class="kpi">
+                <div class="kpi-title">Total Defects</div>
+                <div class="kpi-value" id="totalDefects">0</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-title">Total Causes</div>
+                <div class="kpi-value" id="totalCauses">0</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-title">Vital Few Causes</div>
+                <div class="kpi-value" id="vitalFew">0</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-title">Largest Contributor</div>
+                <div class="kpi-value" id="largestContributor">0%</div>
+            </div>
+        </div>
+
+        <!-- INPUT DATA -->
+        <div class="card" id="inputCard">
+            <h2>📝 Input Data</h2>
+            <table id="inputTable">
+                <thead>
+                    <tr>
+                        <th>Cause</th>
+                        <th>Frequency</th>
+                        <th>Severity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input value="Scratch"></td>
+                        <td><input type="number" value="40"></td>
+                        <td><input type="number" value="5"></td>
+                        <td><button class="btn danger" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                    <tr>
+                        <td><input value="Dimension"></td>
+                        <td><input type="number" value="25"></td>
+                        <td><input type="number" value="4"></td>
+                        <td><button class="btn danger" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                    <tr>
+                        <td><input value="Paint"></td>
+                        <td><input type="number" value="15"></td>
+                        <td><input type="number" value="2"></td>
+                        <td><button class="btn danger" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <button class="btn success" onclick="addRow()">➕ Add Cause</button>
+            <button class="btn primary" onclick="calculatePareto()">📊 Calculate</button>
+            <button class="btn secondary" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn secondary" onclick="downloadPNG()">🖼️ Download PNG</button>
+            <button class="btn secondary" onclick="printReport()">🖨️ Print Report</button>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="card" id="resultsCard">
+            <h2>📋 Pareto Results</h2>
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Cause</th>
+                        <th>Frequency</th>
+                        <th>Weighted</th>
+                        <th>% of Occurence</th>
+                        <th>Cumulative %</th>
+                        <th>Class</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- INSIGHTS -->
+        <div class="card" id="insightsCard">
+            <h2>💡 Executive Insights</h2>
+            <div class="insight" id="insights">
+                Run calculation to generate insights.
+            </div>
+        </div>
+
+        <!-- CHART -->
+        <div class="card" id="chartCard">
+            <h2>📈 Pareto Chart</h2>
+            <canvas id="paretoCanvas" width="1200" height="500"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+        document.getElementById("timestamp").innerText =
+            "Generated: " + new Date().toLocaleString();
+
+        function addRow() {
+            let row = document.querySelector("#inputTable tbody").insertRow();
+            row.innerHTML = `
+                <td><input></td>
+                <td><input type="number"></td>
+                <td><input type="number" value="1"></td>
+                <td><button class="btn danger" onclick="deleteRow(this)">Delete</button></td>
+            `;
+        }
+
+        function deleteRow(btn) {
+            btn.closest("tr").remove();
+        }
+
+        function calculatePareto() {
+            let rows = document.querySelectorAll("#inputTable tbody tr");
+            let data = [];
+
+            rows.forEach(r => {
+                let cause = r.cells[0].querySelector("input").value.trim();
+                let freq = parseFloat(r.cells[1].querySelector("input").value) || 0;
+                let sev = parseFloat(r.cells[2].querySelector("input").value) || 1;
+
+                if (cause && freq > 0) {
+                    data.push({
+                        cause: cause,
+                        freq: freq,
+                        severity: sev,
+                        weighted: freq * sev
+                    });
+                }
+            });
+
+            if (data.length === 0) {
+                alert("Enter valid data.");
+                return;
+            }
+
+            data.sort((a, b) => b.freq - a.freq);
+
+            let total = data.reduce((s, x) => s + x.freq, 0);
+            let cumulative = 0;
+            let vitalFew = 0;
+
+            let tbody = document.querySelector("#resultTable tbody");
+            tbody.innerHTML = "";
+
+            data.forEach((d, index) => {
+                let pct = (d.freq / total) * 100;
+                cumulative += pct;
+                let cls = "C";
+
+                if (cumulative <= 80) {
+                    cls = "A";
+                    vitalFew++;
+                } else if (cumulative <= 95) {
+                    cls = "B";
+                }
+
+                let row = tbody.insertRow();
+                if (cls === "A") {
+                    row.classList.add("highlight");
+                }
+
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${d.cause}</td>
+                    <td>${d.freq}</td>
+                    <td>${d.weighted}</td>
+                    <td>${pct.toFixed(2)}%</td>
+                    <td>${cumulative.toFixed(2)}%</td>
+                    <td>${cls}</td>
+                `;
+            });
+
+            document.getElementById("totalDefects").innerText = total;
+            document.getElementById("totalCauses").innerText = data.length;
+            document.getElementById("vitalFew").innerText = vitalFew;
+
+            let largest = ((data[0].freq / total) * 100).toFixed(1);
+            document.getElementById("largestContributor").innerText = largest + "%";
+
+            let topCauses = data
+                .slice(0, vitalFew)
+                .map(x => x.cause)
+                .join(", ");
+
+            document.getElementById("insights").innerHTML = `
+                <b>Executive Summary</b><br><br>
+                Total defects analysed: <b>${total}</b><br>
+                Number of causes: <b>${data.length}</b><br>
+                Vital Few Causes (A Class): <b>${vitalFew}</b><br><br>
+                The major contributors are:
+                <b>${topCauses}</b>.
+                These causes account for approximately
+                80% of overall defects and should be
+                prioritized for corrective and preventive actions.
+            `;
+
+            drawChart(data, total);
+            document.getElementById("timestamp").innerText =
+                "Generated: " + new Date().toLocaleString();
+        }
+
+        function drawChart(data, total) {
+            const canvas = document.getElementById("paretoCanvas");
+            const ctx = canvas.getContext("2d");
+
+            // Maintain internal resolution for crisp rendering
+            const internalWidth = 1200;
+            const internalHeight = 500;
+            canvas.width = internalWidth;
+            canvas.height = internalHeight;
+
+            ctx.clearRect(0, 0, internalWidth, internalHeight);
+
+            const left = 70;
+            const top = 40;
+            const right = 40;
+            const bottom = 80;
+            const width = internalWidth - left - right;
+            const height = internalHeight - top - bottom;
+            const maxCount = Math.max(...data.map(x => x.freq));
+
+            // Draw chart border
+            ctx.strokeStyle = "#ccc";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(left, top, width, height);
+
+            let cumulative = 0;
+
+            // Draw bars
+            for (let i = 0; i < data.length; i++) {
+                let gap = width / data.length;
+                let barWidth = gap * 0.6;
+                let x = left + i * gap + gap * 0.2;
+                let barHeight = (data[i].freq / maxCount) * height;
+                let y = top + height - barHeight;
+
+                let gradient = ctx.createLinearGradient(0, y, 0, top + height);
+                gradient.addColorStop(0, "#60a5fa");
+                gradient.addColorStop(1, "#2563eb");
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, barWidth, barHeight);
+
+                // Cause label below bar
+                ctx.fillStyle = "#000";
+                ctx.font = "bold 14px Segoe UI, Arial, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(data[i].cause, x + barWidth / 2, y + barHeight + 20);
+
+                // Frequency label above bar
+                ctx.fillText(data[i].freq, x + barWidth / 2, y - 8);
+
+                // Cumulative line points
+                cumulative += (data[i].freq / total) * 100;
+                let px = left + i * gap + gap / 2;
+                let py = top + height - (cumulative / 100) * height;
+
+                if (i === 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+
+            // Draw cumulative line
+            ctx.strokeStyle = "#f97316";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw 80% threshold line
+            let y80 = top + height - (80 / 100) * height;
+            ctx.beginPath();
+            ctx.setLineDash([8, 4]);
+            ctx.moveTo(left, y80);
+            ctx.lineTo(left + width, y80);
+            ctx.strokeStyle = "#16a34a";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset dash
+
+            ctx.fillStyle = "#16a34a";
+            ctx.font = "bold 12px Segoe UI, Arial, sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText("80% Threshold", left + 10, y80 - 10);
+        }
+
+        // Improved print function
+        function printReport() {
+            // Ensure the chart is drawn before printing
+            const canvas = document.getElementById("paretoCanvas");
+            if (!canvas || canvas.width === 0) {
+                calculatePareto();
+            }
+
+            // Small delay to let any re-rendering complete, then print
+            setTimeout(() => {
+                window.print();
+            }, 150);
+        }
+
+        function exportCSV() {
+            let rows = document.querySelectorAll("#resultTable tr");
+            let csv = [];
+            rows.forEach(r => {
+                let cols = r.querySelectorAll("th,td");
+                let arr = [];
+                cols.forEach(c => {
+                    arr.push('"' + c.innerText.replace(/"/g, '""') + '"');
+                });
+                csv.push(arr.join(","));
+            });
+
+            let blob = new Blob([csv.join("\n")], { type: "text/csv" });
+            let a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "Pareto_Analysis.csv";
+            a.click();
+        }
+
+        function downloadPNG() {
+            let canvas = document.getElementById("paretoCanvas");
+            let link = document.createElement("a");
+            link.download = "Pareto_Chart.png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
+
+        // Initial calculation on load
+        calculatePareto();
+    </script>
+
+</body>
+</html>

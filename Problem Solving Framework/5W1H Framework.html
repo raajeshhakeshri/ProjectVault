@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Tech RCA Framework - Light Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Light Theme Variables */
+            --bg-color: #f4f7f9;
+            --panel-bg: rgba(255, 255, 255, 0.95);
+            --window-bg: #ffffff;
+            --primary-accent: #2563eb; /* Royal Blue */
+            --secondary-accent: #7c3aed; /* Violet */
+            --text-main: #1e293b; /* Slate 800 */
+            --text-muted: #64748b; /* Slate 500 */
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+            
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(37, 99, 235, 0.03), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(124, 58, 237, 0.03), transparent 25%);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeIn 1s ease-out;
+        }
+
+        h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, var(--primary-accent), var(--secondary-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .framework-container {
+            max-width: 1300px; /* Widened slightly for better text reading */
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4rem;
+        }
+
+        .section-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 2rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title::after {
+            content: '';
+            height: 1px;
+            flex: 1;
+            background: linear-gradient(90deg, var(--border-color), transparent);
+        }
+
+        /* --- TWO WINDOWS LAYOUT (Phase 1) --- */
+        .split-windows {
+            display: grid;
+            grid-template-columns: 2fr 1.1fr; /* Adjusted ratio for deeper text */
+            gap: 2rem;
+            align-items: stretch; /* Ensures both windows match height */
+        }
+
+        @media (max-width: 1024px) {
+            .split-windows {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .os-window {
+            background: var(--window-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .window-header {
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .dot.red { background-color: #ef4444; }
+        .dot.yellow { background-color: #f59e0b; }
+        .dot.green { background-color: #10b981; }
+
+        .window-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .window-body {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Fixed 2x2 Grid inside the 4W Window */
+        .grid-4w {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+            height: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .grid-4w {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Container inside the 1H Window */
+        .container-1h {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            height: 100%;
+        }
+        
+        .container-1h .node {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container-1h textarea {
+            flex-grow: 1;
+            min-height: 400px; /* Forces it to stretch down to match the 4Ws */
+        }
+
+        /* Base Node Card */
+        .node {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .node:hover {
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-md);
+        }
+
+        .node:focus-within {
+            border-color: var(--primary-accent);
+            box-shadow: var(--shadow-focus);
+            transform: translateY(-2px);
+        }
+
+        .node-header {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-accent);
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .guiding-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        textarea {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: vertical;
+            min-height: 150px; /* Ample space for 50-60 words */
+            transition: all 0.2s ease;
+            flex-grow: 1; /* Pushes to fill card height if needed */
+        }
+
+        /* Customizing placeholder text color and wrap */
+        textarea::placeholder {
+            color: #94a3b8;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+
+        textarea:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: var(--primary-accent);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        /* --- Phase 2: 5 Whys Tree --- */
+        .tree-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            background: var(--window-bg);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .tree-node {
+            width: 100%;
+            max-width: 800px; /* Widened for paragraph reading */
+            position: relative;
+            z-index: 2;
+        }
+
+        .tree-connector {
+            height: 40px;
+            width: 2px;
+            background: var(--border-color);
+            position: relative;
+            z-index: 1;
+            transition: background 0.3s ease;
+        }
+
+        .tree-container:hover .tree-connector {
+            background: var(--primary-accent);
+        }
+
+        .tree-connector::after {
+            content: '▼';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--primary-accent);
+            font-size: 0.7rem;
+        }
+
+        /* Tags / Badges */
+        .step-badge {
+            background: #eff6ff;
+            color: var(--primary-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Root Cause Highlight */
+        .root-node {
+            border-color: #ddd6fe !important;
+            background: #f5f3ff !important;
+        }
+        .root-node .node-header {
+            color: var(--secondary-accent) !important;
+        }
+        .root-node .step-badge {
+            background: #ede9fe;
+            color: var(--secondary-accent);
+            border-color: #c4b5fd;
+        }
+        .root-node textarea:focus {
+            border-color: var(--secondary-accent) !important;
+        }
+
+        /* Button */
+        .btn-action {
+            background: var(--primary-accent);
+            border: none;
+            color: white;
+            padding: 1.2rem 2.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 1rem auto 3rem;
+            min-width: 320px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-action:hover {
+            background: #1d4ed8;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stagger-1 { animation: fadeIn 0.5s ease-out 0.1s both; }
+        .stagger-2 { animation: fadeIn 0.5s ease-out 0.2s both; }
+        .stagger-3 { animation: fadeIn 0.5s ease-out 0.3s both; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>RCA Matrix</h1>
+        <div class="subtitle">5W1H & 5-Why Root Cause Diagnostics</div>
+    </header>
+
+    <div class="framework-container">
+        
+        <!-- Phase 1: Problem Definition -->
+        <section class="stagger-1">
+            <h2 class="section-title">Phase 1: Problem Framing</h2>
+            
+            <div class="split-windows">
+                
+                <!-- Window 1: The 4 W's -->
+                <div class="os-window">
+                    <div class="window-header">
+                        <div class="window-controls">
+                            <div class="dot red"></div>
+                            <div class="dot yellow"></div>
+                            <div class="dot green"></div>
+                        </div>
+                        <div class="window-title">Context Explorer (4W)</div>
+                    </div>
+                    <div class="window-body">
+                        <div class="grid-4w">
+                            
+                            <div class="node">
+                                <div class="node-header">
+                                    WHAT <span class="step-badge">W1</span>
+                                </div>
+                                <p class="guiding-text">Clearly define the exact deviation, defect, or failure point. Avoid assumptions.</p>
+                                <textarea id="w1" placeholder="Provide a detailed description (50-60 words). E.g., 'During the Q3 deployment phase on Server A, the primary database node experienced a 45% latency spike, resulting in continuous transaction timeouts...'"></textarea>
+                            </div>
+
+                            <div class="node">
+                                <div class="node-header">
+                                    WHERE <span class="step-badge">W2</span>
+                                </div>
+                                <p class="guiding-text">Specify the physical, geographical, or systematic location of the failure.</p>
+                                <textarea id="w2" placeholder="Detail the specific environment (50-60 words). E.g., 'The error was isolated entirely to the EU-Central-1 region, specifically within the checkout microservice container running on Kubernetes cluster B...'"></textarea>
+                            </div>
+
+                            <div class="node">
+                                <div class="node-header">
+                                    WHEN <span class="step-badge">W3</span>
+                                </div>
+                                <p class="guiding-text">Establish a timeline. Include exact timestamps, duration, and operational phase.</p>
+                                <textarea id="w3" placeholder="Provide a chronological breakdown (50-60 words). E.g., 'The issue first surfaced at 14:32 UTC on Tuesday immediately following the V2.4 patch rollout, and persisted intermittently for exactly 3 hours and 14 minutes...'"></textarea>
+                            </div>
+
+                            <div class="node">
+                                <div class="node-header">
+                                    WHO <span class="step-badge">W4</span>
+                                </div>
+                                <p class="guiding-text">Identify who discovered it and which user groups or stakeholders are impacted.</p>
+                                <textarea id="w4" placeholder="Detail the human element without placing blame (50-60 words). E.g., 'The anomaly was first flagged by the automated Tier-2 monitoring system, directly impacting approximately 14,000 enterprise customers attempting to finalize invoice payments...'"></textarea>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Window 2: The 1 H -->
+                <div class="os-window">
+                    <div class="window-header">
+                        <div class="window-controls">
+                            <div class="dot red"></div>
+                            <div class="dot yellow"></div>
+                            <div class="dot green"></div>
+                        </div>
+                        <div class="window-title">Impact Analyzer (1H)</div>
+                    </div>
+                    <div class="window-body">
+                        <div class="container-1h">
+                            <div class="node">
+                                <div class="node-header">
+                                    HOW <span class="step-badge">H1</span>
+                                </div>
+                                <p class="guiding-text">Quantify how this issue is manifesting. Focus on the scale of the magnitude, trend lines, operational disruptions, and calculated financial or business cost.</p>
+                                <textarea id="h1" placeholder="Provide a comprehensive impact analysis (60+ words). E.g., 'The system degradation manifested as a complete halt in order processing. From a magnitude perspective, this resulted in an estimated revenue loss of $12,500 per hour. Trend analysis indicates this is the third time this specific service bottleneck has occurred this quarter, revealing a compounding infrastructural weakness that requires immediate remediation...'"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Phase 2: Root Cause Mapping -->
+        <section class="stagger-2">
+            <h2 class="section-title">Phase 2: Deep Drill-Down</h2>
+            <div class="tree-container">
+                
+                <div class="node tree-node">
+                    <div class="node-header">
+                        WHY 1: The Symptom <span class="step-badge">Level 1</span>
+                    </div>
+                    <p class="guiding-text">Based on your 4W1H data, why did the immediate technical or physical failure occur?</p>
+                    <textarea id="why1" placeholder="Detail the immediate cause (50-60 words). E.g., 'The system crashed because the memory allocation on the primary server maxed out at 100%, causing the kernel to automatically terminate the primary checkout service processes to prevent total hardware failure...'"></textarea>
+                </div>
+
+                <div class="tree-connector"></div>
+
+                <div class="node tree-node">
+                    <div class="node-header">
+                        WHY 2: The Excuse <span class="step-badge">Level 2</span>
+                    </div>
+                    <p class="guiding-text">Why did the situation described in Level 1 happen? Look at immediate process gaps.</p>
+                    <textarea id="why2" placeholder="Explain the secondary failure (50-60 words). E.g., 'The memory maxed out because a recently updated API endpoint contained a critical memory leak that was actively caching user session tokens without executing the standard automated garbage collection protocols...'"></textarea>
+                </div>
+
+                <div class="tree-connector"></div>
+
+                <div class="node tree-node">
+                    <div class="node-header">
+                        WHY 3: The Process <span class="step-badge">Level 3</span>
+                    </div>
+                    <p class="guiding-text">Why was this process gap or code error allowed to proceed?</p>
+                    <textarea id="why3" placeholder="Analyze the standard operating procedure (50-60 words). E.g., 'The memory leak was pushed to production because the mandatory load-testing phase was bypassed during the deployment pipeline, meaning the system was never subjected to simulated high-traffic conditions prior to launch...'"></textarea>
+                </div>
+
+                <div class="tree-connector"></div>
+
+                <div class="node tree-node">
+                    <div class="node-header">
+                        WHY 4: The System <span class="step-badge">Level 4</span>
+                    </div>
+                    <p class="guiding-text">Why did the organizational system allow the SOP to fail or be bypassed?</p>
+                    <textarea id="why4" placeholder="Investigate the management or resource level (50-60 words). E.g., 'The load-testing phase was deliberately bypassed by the engineering team because of severe time constraints imposed by the executive launch schedule, forcing the QA team to prioritize functional testing over performance testing...'"></textarea>
+                </div>
+
+                <div class="tree-connector"></div>
+
+                <div class="node tree-node root-node">
+                    <div class="node-header">
+                        WHY 5: The Root Cause <span class="step-badge">Root</span>
+                    </div>
+                    <p class="guiding-text">What is the fundamental systemic, cultural, or policy breakdown that guarantees this failure will repeat unless structurally fixed?</p>
+                    <textarea id="why5" placeholder="Define the ultimate root cause (60+ words). E.g., 'There is a systemic cultural misalignment between product management timelines and engineering quality standards. Currently, there is no hard-stop policy that allows QA engineers to veto a launch based on incomplete performance metrics. Until a formalized, non-negotiable QA veto protocol is established, deadline pressures will continue to force dangerous operational compromises.'"></textarea>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Export/Action Step -->
+        <section class="stagger-3">
+            <button class="btn-action" onclick="generateReport()">
+                <i class="fas fa-file-export"></i> Generate Execution Plan
+            </button>
+        </section>
+
+    </div>
+
+    <script>
+        function generateReport() {
+            const btn = document.querySelector('.btn-action');
+            const originalText = btn.innerHTML;
+            
+            // UI Loading state
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling Matrix...';
+            btn.style.pointerEvents = "none"; 
+            
+            setTimeout(() => {
+                // Helper to get textarea values securely
+                const getVal = (id) => {
+                    const val = document.getElementById(id).value.trim();
+                    return val ? val : '[No input provided]';
+                };
+
+                // Compile formatting for the text file
+                const reportContent = `
+=============================================================
+                  HIGH-TECH RCA MATRIX REPORT                
+=============================================================
+Generated on: ${new Date().toLocaleString()}
+
+--- PHASE 1: PROBLEM FRAMING (4W1H) ---
+
+[WHAT - W1] Specific deviation, defect, or pain point:
+${getVal('w1')}
+
+[WHERE - W2] Geographical, physical component, or system node:
+${getVal('w2')}
+
+[WHEN - W3] Timestamp, lifecycle stage, frequency pattern:
+${getVal('w3')}
+
+[WHO - W4] Impacted stakeholders:
+${getVal('w4')}
+
+[HOW - H1] Magnitude, trend, cost implication:
+${getVal('h1')}
+
+
+--- PHASE 2: DEEP DRILL-DOWN (5 WHYS) ---
+
+[WHY 1 - The Symptom] 
+${getVal('why1')}
+
+[WHY 2 - The Excuse] 
+${getVal('why2')}
+
+[WHY 3 - The Process] 
+${getVal('why3')}
+
+[WHY 4 - The System] 
+${getVal('why4')}
+
+[WHY 5 - THE ROOT CAUSE] 
+${getVal('why5')}
+
+=============================================================
+             END OF ROOT CAUSE ANALYSIS REPORT               
+=============================================================
+                `.trim();
+
+                // Create a Blob containing the text data
+                const blob = new Blob([reportContent], { type: 'text/plain' });
+                
+                // Create a temporary anchor tag to trigger the download
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(blob);
+                
+                // Set the file name (timestamped)
+                const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0,14);
+                downloadLink.download = `RCA_Matrix_Export_${timestamp}.txt`;
+                
+                // Append, click, and cleanup
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(downloadLink.href);
+
+                // Revert UI button state
+                btn.innerHTML = '<i class="fas fa-check"></i> Matrix Exported';
+                btn.style.background = "#10b981"; // Success green
+                
+                // Reset button fully after 3 seconds
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = "";
+                    btn.style.pointerEvents = "auto";
+                }, 3000);
+
+            }, 1200); 
+        }
+    </script>
+</body>
+</html>
