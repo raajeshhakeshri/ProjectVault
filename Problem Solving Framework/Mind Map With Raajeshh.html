@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Executive Mind Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-navy:#F4F5F7;
+    --panel:#FFFFFF;
+    --panel-2:#F2F4F7;
+    --hairline:#E1E5EA;
+    --parchment:#1E2530;
+    --brass:#C6A15B;
+    --brass-strong:#AD8749;
+    --signal-blue:#4E7196;
+    --muted:#6B7280;
+    --danger:#B5544A;
+    --connector:#B7C0CC;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--ink-navy);
+    color:var(--parchment);
+    overflow:hidden;
+  }
+  button{font-family:inherit;}
+
+  #app{display:flex;flex-direction:column;height:100vh;}
+
+  /* ---------- Header ---------- */
+  #topbar{
+    height:64px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;background:var(--panel);border-bottom:1px solid var(--hairline);gap:16px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;min-width:0;}
+  .brand .mark{width:24px;height:24px;background:var(--brass);border-radius:5px;transform:rotate(45deg);
+    box-shadow:0 2px 10px rgba(198,161,91,.45);flex-shrink:0;}
+  .brand .title{font-family:'Fraunces',serif;font-weight:700;font-size:19px;letter-spacing:.3px;white-space:nowrap;}
+  .brand .subtitle{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1.6px;margin-top:1px;white-space:nowrap;}
+
+  .stats{display:flex;gap:18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .stats b{color:var(--parchment);font-weight:500;}
+
+  .toolbar{display:flex;align-items:center;gap:4px;}
+  .divider{width:1px;height:22px;background:var(--hairline);margin:0 6px;flex-shrink:0;}
+
+  .icon-btn{
+    width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid transparent;border-radius:8px;color:var(--parchment);
+    cursor:pointer;transition:background .15s,border-color .15s;
+  }
+  .icon-btn svg{width:17px;height:17px;}
+  .icon-btn:hover{background:var(--panel-2);border-color:var(--hairline);}
+  .icon-btn:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
+  .icon-btn.primary{background:var(--brass);color:#1a1408;}
+  .icon-btn.primary:hover{background:var(--brass-strong);}
+  .icon-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+  .export-wrap{position:relative;}
+  .export-menu{
+    position:absolute;top:42px;right:0;background:var(--panel-2);border:1px solid var(--hairline);
+    border-radius:10px;box-shadow:0 14px 30px rgba(15,23,42,.14);display:none;flex-direction:column;
+    min-width:172px;overflow:hidden;z-index:60;
+  }
+  .export-menu.open{display:flex;}
+  .export-menu button{
+    all:unset;padding:10px 14px;font-size:13px;cursor:pointer;color:var(--parchment);
+    display:flex;align-items:center;gap:8px;
+  }
+  .export-menu button:hover{background:var(--panel);}
+
+  /* ---------- Main layout ---------- */
+  #main{flex:1;display:flex;min-height:0;}
+
+  #canvas-wrap{
+    position:relative;flex:1;overflow:hidden;background-color:var(--ink-navy);
+    background-image:radial-gradient(var(--hairline) 1px, transparent 1px);
+    background-size:26px 26px;cursor:grab;user-select:none;touch-action:none;
+  }
+  #canvas-wrap:active{cursor:grabbing;}
+  #world{position:absolute;top:0;left:0;width:0;height:0;transform-origin:0 0;}
+  #edgesSvg{position:absolute;top:0;left:0;width:1px;height:1px;overflow:visible;}
+  #nodesLayer{position:absolute;top:0;left:0;}
+
+  .node{
+    position:absolute;transform:translate(-50%,-50%);box-sizing:border-box;padding:10px 16px;
+    border-radius:10px;background:var(--panel-2);border:1px solid var(--hairline);
+    box-shadow:0 4px 14px rgba(15,23,42,.09);width:180px;min-height:48px;font-size:14px;
+    line-height:1.35;cursor:grab;touch-action:none;user-select:none;text-align:center;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .node:active{cursor:grabbing;}
+  .node.depth-0{
+    border:2px solid var(--brass);background:linear-gradient(160deg,#FFFFFF,#FAF6EC);
+    font-family:'Fraunces',serif;font-weight:600;font-size:17px;padding:20px 28px;border-radius:16px;
+    box-shadow:0 8px 22px rgba(198,161,91,.16),0 6px 16px rgba(15,23,42,.08);
+    width:230px;min-height:64px;
+  }
+  .node.depth-0::before{
+    content:'';position:absolute;inset:-9px;border:1px solid rgba(198,161,91,.32);
+    border-radius:23px;pointer-events:none;
+  }
+  .node.depth-1{border:1.5px solid var(--signal-blue);font-weight:600;width:200px;min-height:54px;}
+  .node.depth-2{color:var(--muted);font-size:13.5px;}
+  .node.depth-3{color:var(--muted);font-size:13px;opacity:.9;}
+  .node.selected{box-shadow:0 0 0 2px var(--brass),0 8px 18px rgba(15,23,42,.12);}
+  .node.is-collapsed{border-style:dashed;}
+  .node .node-badge{
+    position:absolute;top:-8px;right:-8px;background:var(--brass);color:#1a1408;
+    font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;border-radius:999px;
+    min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;
+    box-shadow:0 1px 3px rgba(15,23,42,.18);
+  }
+  .node .node-toggle{
+    position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);
+    width:18px;height:18px;border-radius:50%;background:#FFFFFF;border:1.5px solid var(--signal-blue);
+    color:var(--signal-blue);font-size:13px;font-weight:700;line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;
+    box-shadow:0 1px 4px rgba(15,23,42,.16);
+  }
+  .node .node-toggle:hover{background:var(--signal-blue);color:#FFFFFF;}
+  .node.is-collapsed .node-toggle{background:var(--brass);border-color:var(--brass);color:#FFFFFF;}
+  .node.is-collapsed .node-toggle:hover{filter:brightness(1.08);}
+  .node-text{outline:none;white-space:pre-wrap;word-break:break-word;text-align:center;}
+  .node.editing{cursor:text;box-shadow:0 0 0 2px var(--brass-strong);}
+  .node.editing .node-text{user-select:text;}
+
+  #minimap{
+    position:absolute;bottom:16px;right:16px;background:rgba(255,255,255,.92);
+    border:1px solid var(--hairline);border-radius:10px;backdrop-filter:blur(4px);cursor:pointer;
+    box-shadow:0 4px 14px rgba(15,23,42,.10);
+  }
+
+  /* ---------- Outline panel ---------- */
+  aside#outlinePanel{
+    width:288px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--hairline);
+    display:flex;flex-direction:column;padding:16px;overflow-y:auto;
+  }
+  #app.outline-hidden aside#outlinePanel{display:none;}
+  .panel-title{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin-bottom:10px;}
+  .panel-title b{color:var(--parchment);font-weight:600;}
+
+  .outline-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;}
+  .outline-row:hover{background:var(--panel-2);}
+  .outline-row.sel{background:rgba(198,161,91,.18);color:var(--brass-strong);}
+  .outline-row .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .outline-row.depth-0 .dot{background:var(--brass);width:8px;height:8px;}
+  .outline-row.depth-1 .dot{background:var(--signal-blue);}
+  .outline-children{margin-left:13px;border-left:1px dashed var(--hairline);padding-left:8px;}
+  .olabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .outline-toggle{
+    all:unset;width:14px;height:14px;flex-shrink:0;text-align:center;line-height:14px;
+    cursor:pointer;color:var(--muted);font-size:9px;border-radius:3px;
+  }
+  .outline-toggle:hover{color:var(--parchment);background:var(--hairline);}
+  .outline-toggle-spacer{width:14px;height:14px;flex-shrink:0;display:inline-block;}
+
+  .side-block{margin-top:18px;padding-top:14px;border-top:1px solid var(--hairline);font-size:12.5px;color:var(--muted);}
+  .side-block .legend-row{display:flex;align-items:center;gap:8px;padding:3px 0;}
+  .side-block .legend-row .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .side-block div{padding:2px 0;}
+  kbd{background:var(--panel-2);border:1px solid var(--hairline);border-radius:4px;padding:1px 6px;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--parchment);}
+
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(16px);
+    background:var(--panel-2);border:1px solid var(--hairline);color:var(--parchment);
+    padding:10px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;z-index:200;box-shadow:0 10px 24px rgba(15,23,42,.16);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:820px){
+    .stats{display:none;}
+    .brand .subtitle{display:none;}
+    aside#outlinePanel{position:fixed;top:64px;right:0;bottom:0;width:82vw;max-width:320px;z-index:80;
+      box-shadow:-14px 0 30px rgba(15,23,42,.14);}
+    #app.outline-hidden aside#outlinePanel{display:none;}
+    #app:not(.outline-hidden) aside#outlinePanel{display:flex;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="mark"></div>
+      <div>
+        <div class="title">Mind Map with Raajeshh</div>
+        <div class="subtitle">Strategic Mind Mapping</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <span><b id="nodeCount">0</b> nodes</span>
+      <span id="zoomLevel">100%</span>
+    </div>
+
+    <div class="toolbar">
+      <button class="icon-btn primary" id="addChildBtn" title="Add child (Tab)" aria-label="Add child node">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="icon-btn" id="deleteBtn" title="Delete node (Del)" aria-label="Delete selected node">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 20 7"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>
+      </button>
+      <div class="divider"></div>
+      <button class="icon-btn" id="autoArrangeBtn" title="Auto-arrange radially" aria-label="Auto arrange layout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+      </button>
+      <div class="divider"></div>
+      <button class="icon-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button class="icon-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button class="icon-btn" id="resetViewBtn" title="Fit to view" aria-label="Reset view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      </button>
+      <div class="divider"></div>
+      <button class="icon-btn" id="outlineToggleBtn" title="Toggle outline panel" aria-label="Toggle outline panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </button>
+      <div class="export-wrap">
+        <button class="icon-btn" id="exportBtn" title="Export" aria-label="Export map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
+        </button>
+        <div class="export-menu" id="exportMenu">
+          <button id="exportPngBtn">Export as PNG</button>
+          <button id="exportSvgBtn">Export as SVG</button>
+          <button id="exportJsonBtn">Export as JSON</button>
+        </div>
+      </div>
+      <button class="icon-btn" id="importBtn" title="Import JSON" aria-label="Import map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8"/><polyline points="7 13 12 8 17 13"/><line x1="4" y1="4" x2="20" y2="4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="main">
+    <div id="canvas-wrap">
+      <div id="world">
+        <svg id="edgesSvg"></svg>
+        <div id="nodesLayer"></div>
+      </div>
+      <svg id="minimap" width="160" height="110"></svg>
+    </div>
+
+    <aside id="outlinePanel">
+      <div class="panel-title">Outline · <b id="outlineCount">0</b></div>
+      <div id="outlineTree"></div>
+
+      <div class="side-block">
+        <div class="panel-title" style="margin-bottom:8px;">Depth key</div>
+        <div class="legend-row"><span class="dot" style="background:var(--brass)"></span>Root</div>
+        <div class="legend-row"><span class="dot" style="background:var(--signal-blue)"></span>Branch</div>
+        <div class="legend-row"><span class="dot" style="background:var(--muted)"></span>Sub-branch</div>
+      </div>
+
+      <div class="side-block">
+        <div class="panel-title" style="margin-bottom:8px;">Shortcuts</div>
+        <div><kbd>Tab</kbd> Add child</div>
+        <div><kbd>Enter</kbd> Add sibling</div>
+        <div><kbd>Dbl-click</kbd> Rename</div>
+        <div><kbd>Del</kbd> Remove node</div>
+        <div><kbd>Scroll</kbd> Zoom · <kbd>Drag</kbd> Pan</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<input type="file" id="importInput" accept="application/json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- State ----------
+  const state = {
+    nodes: new Map(),
+    rootId: null,
+    selectedId: null,
+    nextId: 1
+  };
+  let pan = {x:0, y:0};
+  let zoom = 1;
+  const CONNECTOR_COLOR = '#9FB0C2';
+  let lastDragMoved = false;
+
+  // ---------- DOM refs ----------
+  const app = document.getElementById('app');
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const world = document.getElementById('world');
+  const svgEdges = document.getElementById('edgesSvg');
+  const nodesLayer = document.getElementById('nodesLayer');
+  const outlineTree = document.getElementById('outlineTree');
+  const outlineCount = document.getElementById('outlineCount');
+  const nodeCountEl = document.getElementById('nodeCount');
+  const zoomLevelEl = document.getElementById('zoomLevel');
+  const minimapSvg = document.getElementById('minimap');
+  const toastEl = document.getElementById('toast');
+  const importInput = document.getElementById('importInput');
+  const exportMenu = document.getElementById('exportMenu');
+
+  // ---------- Helpers ----------
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+  function getChildren(id){
+    const out = [];
+    state.nodes.forEach(n => { if(n.parentId === id) out.push(n); });
+    return out;
+  }
+
+  function getDepth(id){
+    let d = 0, cur = state.nodes.get(id);
+    while(cur && cur.parentId){ d++; cur = state.nodes.get(cur.parentId); }
+    return d;
+  }
+
+  function getSubtreeIds(id){
+    const ids = [id];
+    getChildren(id).forEach(c => ids.push(...getSubtreeIds(c.id)));
+    return ids;
+  }
+
+  // A node is visible unless any ancestor (not itself) is collapsed.
+  function isVisible(id){
+    const node = state.nodes.get(id);
+    if(!node) return false;
+    let cur = state.nodes.get(node.parentId);
+    while(cur){
+      if(cur.collapsed) return false;
+      cur = state.nodes.get(cur.parentId);
+    }
+    return true;
+  }
+
+  function toggleCollapse(id){
+    const node = state.nodes.get(id);
+    if(!node) return;
+    node.collapsed = !node.collapsed;
+    render();
+  }
+
+  // Expands every collapsed ancestor of a node so it becomes visible on canvas.
+  function ensureVisible(id){
+    const node = state.nodes.get(id);
+    if(!node) return;
+    let cur = state.nodes.get(node.parentId);
+    let changed = false;
+    while(cur){
+      if(cur.collapsed){ cur.collapsed = false; changed = true; }
+      cur = state.nodes.get(cur.parentId);
+    }
+    if(changed) render();
+  }
+
+  function escapeHTML(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function escapeXML(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  let toastTimer;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+
+  // ---------- Node dimensions (must mirror the fixed widths set in CSS) ----------
+  const NODE_WIDTH = {0:230, 1:200, default:180};
+  function nodeHalfWidth(id){
+    const depth = getDepth(id);
+    const w = depth === 0 ? NODE_WIDTH[0] : depth === 1 ? NODE_WIDTH[1] : NODE_WIDTH.default;
+    return w / 2;
+  }
+
+  // Computes where a connector should touch each box's edge (left/right, at vertical center)
+  // instead of running center-to-center, so the line meets the rectangle precisely.
+  function attachPoints(p, c){
+    const dirX = c.x >= p.x ? 1 : -1;
+    return {
+      from: { x: p.x + dirX * nodeHalfWidth(p.id), y: p.y },
+      to:   { x: c.x - dirX * nodeHalfWidth(c.id), y: c.y }
+    };
+  }
+
+  // ---------- Connection path (standard business elbow connector) ----------
+  function connectionPath(p, c){
+    const r = 10;
+    const dx = c.x - p.x, dy = c.y - p.y;
+    if(Math.abs(dx) < r*2 || Math.abs(dy) < r*2){
+      return `M ${p.x} ${p.y} L ${c.x} ${c.y}`;
+    }
+    const bendX = p.x + dx/2;
+    const dirX = dx > 0 ? 1 : -1;
+    const dirY = dy > 0 ? 1 : -1;
+    return `M ${p.x} ${p.y}
+      L ${bendX - r*dirX} ${p.y}
+      Q ${bendX} ${p.y} ${bendX} ${p.y + r*dirY}
+      L ${bendX} ${c.y - r*dirY}
+      Q ${bendX} ${c.y} ${bendX + r*dirX} ${c.y}
+      L ${c.x} ${c.y}`;
+  }
+
+  // ---------- Render ----------
+  function render(){
+    world.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+    renderEdges();
+    renderNodes();
+    renderOutline();
+    renderMinimap();
+    updateStats();
+  }
+
+  function renderEdges(){
+    let pathsStr = '';
+    state.nodes.forEach(n => {
+      if(!n.parentId) return;
+      if(!isVisible(n.id)) return;
+      const p = state.nodes.get(n.parentId);
+      if(!p) return;
+      const {from, to} = attachPoints(p, n);
+      pathsStr += `<path d="${connectionPath(from,to)}" stroke="${CONNECTOR_COLOR}" stroke-width="1.75" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>`;
+      pathsStr += `<circle cx="${from.x}" cy="${from.y}" r="2.5" fill="${CONNECTOR_COLOR}"/>`;
+      pathsStr += `<circle cx="${to.x}" cy="${to.y}" r="2.5" fill="${CONNECTOR_COLOR}"/>`;
+    });
+    svgEdges.innerHTML = pathsStr;
+  }
+
+  function nodeEl(node){
+    const depth = getDepth(node.id);
+    const div = document.createElement('div');
+    div.className = 'node depth-' + Math.min(depth,3);
+    if(node.id === state.selectedId) div.classList.add('selected');
+    if(node.collapsed) div.classList.add('is-collapsed');
+    div.dataset.id = node.id;
+    div.style.left = node.x + 'px';
+    div.style.top = node.y + 'px';
+    const span = document.createElement('span');
+    span.className = 'node-text';
+    span.textContent = node.text;
+    span.spellcheck = false;
+    div.appendChild(span);
+    const kids = getChildren(node.id);
+    if(kids.length){
+      const badge = document.createElement('span');
+      badge.className = 'node-badge';
+      badge.textContent = kids.length;
+      div.appendChild(badge);
+      if(depth > 0){
+        const toggleBtn = document.createElement('span');
+        toggleBtn.className = 'node-toggle';
+        toggleBtn.textContent = node.collapsed ? '+' : '\u2212';
+        toggleBtn.title = node.collapsed ? 'Expand branch' : 'Collapse branch';
+        div.appendChild(toggleBtn);
+      }
+    }
+    return div;
+  }
+
+  function renderNodes(){
+    nodesLayer.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    state.nodes.forEach(n => { if(isVisible(n.id)) frag.appendChild(nodeEl(n)); });
+    nodesLayer.appendChild(frag);
+  }
+
+  function buildOutlineHTML(id){
+    const node = state.nodes.get(id);
+    if(!node) return '';
+    const kids = getChildren(id);
+    const depth = getDepth(id);
+    const selCls = id === state.selectedId ? ' sel' : '';
+    const collapsible = depth > 0 && kids.length > 0;
+    const isCollapsed = collapsible && node.collapsed;
+    const collapsedCls = isCollapsed ? ' collapsed' : '';
+    const toggleHtml = collapsible
+      ? `<button class="outline-toggle" data-toggle-id="${id}" aria-label="Toggle branch">${node.collapsed ? '▸' : '▾'}</button>`
+      : `<span class="outline-toggle-spacer"></span>`;
+    let html = `<div class="outline-row depth-${Math.min(depth,3)}${selCls}${collapsedCls}" data-id="${id}">`
+      + toggleHtml
+      + `<span class="dot"></span><span class="olabel">${escapeHTML(node.text)}</span></div>`;
+    if(kids.length && !isCollapsed){
+      html += `<div class="outline-children">${kids.map(k => buildOutlineHTML(k.id)).join('')}</div>`;
+    }
+    return html;
+  }
+
+  function renderOutline(){
+    outlineTree.innerHTML = state.rootId ? buildOutlineHTML(state.rootId) : '';
+    outlineCount.textContent = state.nodes.size;
+  }
+
+  function renderMinimap(){
+    const nodes = Array.from(state.nodes.values()).filter(n => isVisible(n.id));
+    if(!nodes.length){ minimapSvg.innerHTML=''; return; }
+    const minX = Math.min(...nodes.map(n=>n.x)), maxX = Math.max(...nodes.map(n=>n.x));
+    const minY = Math.min(...nodes.map(n=>n.y)), maxY = Math.max(...nodes.map(n=>n.y));
+    const w = (maxX-minX) || 1, h = (maxY-minY) || 1;
+    const pad = 10, mmW = 160, mmH = 110;
+    const scale = Math.min((mmW-2*pad)/w, (mmH-2*pad)/h, 1);
+    const ox = pad - minX*scale + (mmW-2*pad - w*scale)/2;
+    const oy = pad - minY*scale + (mmH-2*pad - h*scale)/2;
+    let dots = '';
+    nodes.forEach(n => {
+      const depth = getDepth(n.id);
+      const r = depth===0 ? 4 : 2.4;
+      const color = depth===0 ? '#C6A15B' : depth===1 ? '#5B7FA6' : '#5b6472';
+      dots += `<circle cx="${ox+n.x*scale}" cy="${oy+n.y*scale}" r="${r}" fill="${color}"/>`;
+    });
+    const rect = canvasWrap.getBoundingClientRect();
+    const vx = (0-pan.x)/zoom, vy = (0-pan.y)/zoom;
+    const vw = rect.width/zoom, vh = rect.height/zoom;
+    const viewRect = `<rect x="${ox+vx*scale}" y="${oy+vy*scale}" width="${Math.max(1,vw*scale)}" height="${Math.max(1,vh*scale)}" fill="none" stroke="#C6A15B" stroke-width="1" opacity="0.85"/>`;
+    minimapSvg.innerHTML = dots + viewRect;
+    minimapSvg.dataset.ox = ox; minimapSvg.dataset.oy = oy; minimapSvg.dataset.scale = scale;
+  }
+
+  function updateStats(){
+    nodeCountEl.textContent = state.nodes.size;
+    zoomLevelEl.textContent = Math.round(zoom*100) + '%';
+  }
+
+  // ---------- Selection ----------
+  function selectNode(id){
+    const prev = nodesLayer.querySelector('.node.selected');
+    if(prev) prev.classList.remove('selected');
+    state.selectedId = id;
+    if(id){
+      const el = nodesLayer.querySelector(`[data-id="${id}"]`);
+      if(el) el.classList.add('selected');
+    }
+    renderOutline();
+  }
+
+  function deselect(){
+    selectNode(null);
+  }
+
+  // ---------- Structural operations ----------
+  function outwardAngle(node){
+    const p = state.nodes.get(node.parentId);
+    if(!p) return -Math.PI/2;
+    return Math.atan2(node.y-p.y, node.x-p.x);
+  }
+
+  function addChild(parentId){
+    parentId = parentId || state.rootId;
+    const parent = state.nodes.get(parentId);
+    if(!parent) return null;
+    const id = 'n' + (state.nextId++);
+    const siblings = getChildren(parentId);
+    const depth = getDepth(parentId) + 1;
+    const radius = 170 + depth*35;
+    let angle;
+    if(parentId === state.rootId){
+      const total = siblings.length + 1;
+      angle = (siblings.length/total) * Math.PI*2 - Math.PI/2;
+    } else {
+      const base = outwardAngle(parent);
+      const spread = Math.PI/2.4;
+      const idx = siblings.length;
+      angle = base - spread/2 + (spread * (idx % 4) / 3);
+    }
+    state.nodes.set(id, {
+      id, text:'New Idea', parentId,
+      x: parent.x + Math.cos(angle)*radius,
+      y: parent.y + Math.sin(angle)*radius,
+      collapsed:false
+    });
+    state.selectedId = id;
+    render();
+    startEditingNode(id);
+    return id;
+  }
+
+  function addSibling(nodeId){
+    const node = state.nodes.get(nodeId);
+    if(!node) return;
+    if(!node.parentId){ addChild(state.rootId); return; }
+    addChild(node.parentId);
+  }
+
+  function deleteNode(id){
+    if(!id) return;
+    if(id === state.rootId){ toast("The root node can't be deleted"); return; }
+    const node = state.nodes.get(id);
+    if(!node) return;
+    const subtree = getSubtreeIds(id);
+    if(subtree.length > 1){
+      const ok = confirm(`Delete "${node.text}" and its ${subtree.length-1} sub-node(s)?`);
+      if(!ok) return;
+    }
+    const parentId = node.parentId;
+    subtree.forEach(sid => state.nodes.delete(sid));
+    state.selectedId = parentId;
+    render();
+    toast('Node removed');
+  }
+
+  function autoLayout(opts){
+    opts = opts || {};
+    const root = state.nodes.get(state.rootId);
+    if(!root) return;
+    root.x = 0; root.y = 0;
+    const levelGap = 210;
+    function place(node, start, end, depth){
+      const kids = getChildren(node.id);
+      if(!kids.length) return;
+      const step = (end-start)/kids.length;
+      kids.forEach((child,i) => {
+        const angle = start + step*(i+0.5);
+        child.x = Math.cos(angle) * levelGap * depth;
+        child.y = Math.sin(angle) * levelGap * depth;
+        place(child, start+step*i, start+step*(i+1), depth+1);
+      });
+    }
+    place(root, -Math.PI, Math.PI, 1);
+    render();
+    resetView();
+    if(!opts.silent) toast('Map arranged radially');
+  }
+
+  // ---------- Editing ----------
+  function selectAllText(el){
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function startEditingNode(id){
+    const div = nodesLayer.querySelector(`[data-id="${id}"]`);
+    if(!div) return;
+    const span = div.querySelector('.node-text');
+    div.classList.add('editing');
+    span.contentEditable = 'true';
+    span.focus();
+    selectAllText(span);
+
+    function commit(){
+      span.contentEditable = 'false';
+      div.classList.remove('editing');
+      const val = span.textContent.trim();
+      const node = state.nodes.get(id);
+      if(node) node.text = val.length ? val : 'Untitled';
+      span.removeEventListener('keydown', onKey);
+      render();
+    }
+    function onKey(ev){
+      if(ev.key === 'Enter'){ ev.preventDefault(); span.blur(); }
+      else if(ev.key === 'Escape'){
+        ev.preventDefault();
+        const node = state.nodes.get(id);
+        span.textContent = node ? node.text : '';
+        span.blur();
+      }
+    }
+    span.addEventListener('blur', commit, {once:true});
+    span.addEventListener('keydown', onKey);
+  }
+
+  // ---------- Node drag / select (pointer events) ----------
+  nodesLayer.addEventListener('pointerdown', e => {
+    if(e.target.closest('.node-toggle')) return;
+    const div = e.target.closest('.node');
+    if(!div || div.classList.contains('editing')) return;
+    e.stopPropagation();
+    const id = div.dataset.id;
+    selectNode(id);
+    const n = state.nodes.get(id);
+    const startX = e.clientX, startY = e.clientY, nx = n.x, ny = n.y;
+    lastDragMoved = false;
+    div.setPointerCapture(e.pointerId);
+
+    function onMove(ev){
+      const dx = (ev.clientX-startX)/zoom, dy = (ev.clientY-startY)/zoom;
+      if(Math.abs(ev.clientX-startX) > 3 || Math.abs(ev.clientY-startY) > 3) lastDragMoved = true;
+      n.x = nx+dx; n.y = ny+dy;
+      div.style.left = n.x + 'px';
+      div.style.top = n.y + 'px';
+      renderEdges();
+    }
+    function onUp(){
+      div.releasePointerCapture(e.pointerId);
+      div.removeEventListener('pointermove', onMove);
+      div.removeEventListener('pointerup', onUp);
+      renderMinimap();
+    }
+    div.addEventListener('pointermove', onMove);
+    div.addEventListener('pointerup', onUp);
+  });
+
+  nodesLayer.addEventListener('dblclick', e => {
+    const div = e.target.closest('.node');
+    if(!div) return;
+    e.stopPropagation();
+    startEditingNode(div.dataset.id);
+  });
+
+  nodesLayer.addEventListener('click', e => {
+    const toggleBtn = e.target.closest('.node-toggle');
+    if(!toggleBtn) return;
+    e.stopPropagation();
+    const div = toggleBtn.closest('.node');
+    if(!div) return;
+    selectNode(div.dataset.id);
+    toggleCollapse(div.dataset.id);
+  });
+
+  // ---------- Canvas pan / deselect ----------
+  canvasWrap.addEventListener('pointerdown', e => {
+    if(e.target.closest('.node') || e.target.closest('#minimap')) return;
+    const startX = e.clientX, startY = e.clientY;
+    const startPan = {x:pan.x, y:pan.y};
+    let moved = false;
+    canvasWrap.setPointerCapture(e.pointerId);
+
+    function onMove(ev){
+      const dx = ev.clientX-startX, dy = ev.clientY-startY;
+      if(Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      pan.x = startPan.x+dx; pan.y = startPan.y+dy;
+      world.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+      renderMinimap();
+    }
+    function onUp(){
+      canvasWrap.removeEventListener('pointermove', onMove);
+      canvasWrap.removeEventListener('pointerup', onUp);
+      canvasWrap.releasePointerCapture(e.pointerId);
+      if(!moved) deselect();
+    }
+    canvasWrap.addEventListener('pointermove', onMove);
+    canvasWrap.addEventListener('pointerup', onUp);
+  });
+
+  // ---------- Zoom ----------
+  function zoomAt(mx, my, factor){
+    const newZoom = clamp(zoom*factor, 0.25, 2.5);
+    const wx = (mx-pan.x)/zoom, wy = (my-pan.y)/zoom;
+    zoom = newZoom;
+    pan.x = mx - wx*zoom;
+    pan.y = my - wy*zoom;
+    render();
+  }
+
+  canvasWrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvasWrap.getBoundingClientRect();
+    const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+    const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
+    zoomAt(mx, my, factor);
+  }, {passive:false});
+
+  function resetView(){
+    zoom = 1;
+    const root = state.nodes.get(state.rootId);
+    const rect = canvasWrap.getBoundingClientRect();
+    if(root){
+      pan.x = rect.width/2 - root.x*zoom;
+      pan.y = rect.height/2 - root.y*zoom;
+    }
+    render();
+  }
+
+  // ---------- Outline interactions ----------
+  outlineTree.addEventListener('click', e => {
+    const toggleBtn = e.target.closest('.outline-toggle');
+    if(toggleBtn){
+      e.stopPropagation();
+      toggleCollapse(toggleBtn.dataset.toggleId);
+      return;
+    }
+    const row = e.target.closest('.outline-row');
+    if(!row) return;
+    const id = row.dataset.id;
+    ensureVisible(id);
+    selectNode(id);
+    focusOnNode(id);
+  });
+
+  function focusOnNode(id){
+    const n = state.nodes.get(id);
+    if(!n) return;
+    const rect = canvasWrap.getBoundingClientRect();
+    pan.x = rect.width/2 - n.x*zoom;
+    pan.y = rect.height/2 - n.y*zoom;
+    render();
+  }
+
+  // ---------- Minimap navigation ----------
+  minimapSvg.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    const rect = minimapSvg.getBoundingClientRect();
+    const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+    const ox = parseFloat(minimapSvg.dataset.ox||0), oy = parseFloat(minimapSvg.dataset.oy||0), scale = parseFloat(minimapSvg.dataset.scale||1);
+    const worldX = (mx-ox)/scale, worldY = (my-oy)/scale;
+    const crect = canvasWrap.getBoundingClientRect();
+    pan.x = crect.width/2 - worldX*zoom;
+    pan.y = crect.height/2 - worldY*zoom;
+    render();
+  });
+
+  // ---------- Keyboard shortcuts ----------
+  document.addEventListener('keydown', e => {
+    if(document.activeElement && document.activeElement.isContentEditable) return;
+    if(e.key === 'Tab'){ e.preventDefault(); addChild(state.selectedId || state.rootId); }
+    else if(e.key === 'Enter'){ e.preventDefault(); addSibling(state.selectedId || state.rootId); }
+    else if((e.key === 'Delete' || e.key === 'Backspace') && state.selectedId){ e.preventDefault(); deleteNode(state.selectedId); }
+    else if(e.key === 'Escape'){ deselect(); }
+  });
+
+  // ---------- Toolbar wiring ----------
+  document.getElementById('addChildBtn').addEventListener('click', () => addChild(state.selectedId || state.rootId));
+  document.getElementById('deleteBtn').addEventListener('click', () => deleteNode(state.selectedId));
+  document.getElementById('autoArrangeBtn').addEventListener('click', () => autoLayout());
+  document.getElementById('zoomInBtn').addEventListener('click', () => {
+    const rect = canvasWrap.getBoundingClientRect();
+    zoomAt(rect.width/2, rect.height/2, 1.2);
+  });
+  document.getElementById('zoomOutBtn').addEventListener('click', () => {
+    const rect = canvasWrap.getBoundingClientRect();
+    zoomAt(rect.width/2, rect.height/2, 1/1.2);
+  });
+  document.getElementById('resetViewBtn').addEventListener('click', resetView);
+  document.getElementById('outlineToggleBtn').addEventListener('click', () => app.classList.toggle('outline-hidden'));
+
+  const exportBtn = document.getElementById('exportBtn');
+  exportBtn.addEventListener('click', e => { e.stopPropagation(); exportMenu.classList.toggle('open'); });
+  exportMenu.addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('click', () => exportMenu.classList.remove('open'));
+
+  document.getElementById('importBtn').addEventListener('click', () => importInput.click());
+
+  // ---------- Import / Export ----------
+  function downloadBlob(content, filename, type){
+    const blob = new Blob([content], {type});
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, filename);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function triggerDownload(url, filename){
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function wrapForExport(text, maxChars){
+    if(text.length <= maxChars) return [text];
+    const words = text.split(' ');
+    let lines = [], cur = '';
+    words.forEach(w => {
+      if((cur + ' ' + w).trim().length > maxChars){ lines.push(cur.trim()); cur = w; }
+      else cur = (cur + ' ' + w).trim();
+    });
+    if(cur) lines.push(cur);
+    return lines.slice(0,3);
+  }
+
+  function buildExportSVG(){
+    const nodes = Array.from(state.nodes.values()).filter(n => isVisible(n.id));
+    if(!nodes.length) return '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>';
+    const pad = 160;
+    const minX = Math.min(...nodes.map(n=>n.x)) - pad;
+    const maxX = Math.max(...nodes.map(n=>n.x)) + pad;
+    const minY = Math.min(...nodes.map(n=>n.y)) - pad;
+    const maxY = Math.max(...nodes.map(n=>n.y)) + pad;
+    const w = maxX-minX, h = maxY-minY;
+
+    let edges = '';
+    nodes.forEach(n => {
+      if(!n.parentId) return;
+      const p = state.nodes.get(n.parentId);
+      if(!p) return;
+      const {from, to} = attachPoints(p, n);
+      edges += `<path d="${connectionPath(from,to)}" stroke="${CONNECTOR_COLOR}" stroke-width="1.75" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>`;
+      edges += `<circle cx="${from.x}" cy="${from.y}" r="2.5" fill="${CONNECTOR_COLOR}"/>`;
+      edges += `<circle cx="${to.x}" cy="${to.y}" r="2.5" fill="${CONNECTOR_COLOR}"/>`;
+    });
+
+    let nodesSvg = '';
+    nodes.forEach(n => {
+      const depth = getDepth(n.id);
+      const boxW = depth===0 ? NODE_WIDTH[0] : depth===1 ? NODE_WIDTH[1] : NODE_WIDTH.default;
+      const minH = depth===0 ? 64 : depth===1 ? 54 : 48;
+      const fontSize = depth===0 ? 15 : 13;
+      const maxChars = Math.max(8, Math.floor((boxW - 40) / (fontSize*0.58)));
+      const lines = wrapForExport(n.text, maxChars);
+      const lineH = 18;
+      const boxH = Math.max(minH, 24 + lines.length*lineH);
+      const stroke = depth===0 ? '#C6A15B' : depth===1 ? '#4E7196' : '#D8DCE3';
+      const textColor = depth<=1 ? '#1E2530' : '#6B7280';
+      const fontWeight = depth<=1 ? 600 : 400;
+      const rx = depth===0 ? 16 : 10;
+      const startY = boxH/2 - ((lines.length-1)*lineH)/2 + fontSize/3;
+      const tspans = lines.map((l,i) => `<tspan x="${boxW/2}" y="${startY+i*lineH}">${escapeXML(l)}</tspan>`).join('');
+      nodesSvg += `<g transform="translate(${n.x-boxW/2},${n.y-boxH/2})">
+        <rect width="${boxW}" height="${boxH}" rx="${rx}" fill="#FFFFFF" stroke="${stroke}" stroke-width="${depth===0?2:1.5}"/>
+        <text x="${boxW/2}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${textColor}">${tspans}</text>
+      </g>`;
+    });
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${minX} ${minY} ${w} ${h}">
+      <rect x="${minX}" y="${minY}" width="${w}" height="${h}" fill="#F4F5F7"/>
+      ${edges}
+      ${nodesSvg}
+    </svg>`;
+  }
+
+  function exportPNG(){
+    const svgStr = buildExportSVG();
+    const blob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width*scale;
+      canvas.height = img.height*scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(pngBlob => {
+        const purl = URL.createObjectURL(pngBlob);
+        triggerDownload(purl, 'apex-map.png');
+        setTimeout(() => URL.revokeObjectURL(purl), 1000);
+        toast('Exported PNG');
+      });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => toast('PNG export failed');
+    img.src = url;
+  }
+
+  function exportJSONFile(){
+    const data = {rootId: state.rootId, nextId: state.nextId, nodes: Array.from(state.nodes.values())};
+    downloadBlob(JSON.stringify(data, null, 2), 'apex-map.json', 'application/json');
+    toast('Exported JSON');
+  }
+
+  document.getElementById('exportPngBtn').addEventListener('click', () => { exportPNG(); exportMenu.classList.remove('open'); });
+  document.getElementById('exportSvgBtn').addEventListener('click', () => {
+    downloadBlob(buildExportSVG(), 'apex-map.svg', 'image/svg+xml');
+    exportMenu.classList.remove('open');
+    toast('Exported SVG');
+  });
+  document.getElementById('exportJsonBtn').addEventListener('click', () => { exportJSONFile(); exportMenu.classList.remove('open'); });
+
+  importInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        const map = new Map();
+        data.nodes.forEach(n => { if(typeof n.collapsed !== 'boolean') n.collapsed = false; map.set(n.id, n); });
+        state.nodes = map;
+        state.rootId = data.rootId;
+        state.selectedId = data.rootId;
+        let maxNum = 0;
+        data.nodes.forEach(n => {
+          const m = /^n(\d+)$/.exec(n.id);
+          if(m) maxNum = Math.max(maxNum, parseInt(m[1],10));
+        });
+        state.nextId = maxNum + 1;
+        zoom = 1;
+        resetView();
+        toast('Map imported');
+      }catch(err){
+        toast('Invalid file');
+      }
+    };
+    reader.readAsText(file);
+    importInput.value = '';
+  });
+
+  // ---------- Seed data ----------
+  function addChildSilent(parentId, text){
+    const id = 'n' + (state.nextId++);
+    state.nodes.set(id, {id, text, parentId, x:0, y:0, collapsed:false});
+    return id;
+  }
+
+  function seed(){
+    state.nodes.set('root', {id:'root', text:'FY27 Strategy', parentId:null, x:0, y:0, collapsed:false});
+    state.rootId = 'root';
+    state.nextId = 1;
+    const branches = [
+      ['Market Expansion', ['APAC Entry','Channel Partnerships']],
+      ['Operational Excellence', ['Process Automation']],
+      ['Talent & Culture', ['Leadership Pipeline']],
+      ['Risk & Governance', ['Regulatory Readiness']]
+    ];
+    branches.forEach(([label, kids]) => {
+      const id = addChildSilent('root', label);
+      kids.forEach(k => addChildSilent(id, k));
+    });
+    state.selectedId = 'root';
+  }
+
+  // ---------- Init ----------
+  seed();
+  autoLayout({silent:true});
+  if(window.innerWidth < 820) app.classList.add('outline-hidden');
+  window.addEventListener('resize', () => renderMinimap());
+
+})();
+</script>
+</body>
+</html>
