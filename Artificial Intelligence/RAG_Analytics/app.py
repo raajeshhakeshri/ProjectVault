@@ -85,9 +85,21 @@ def validate(code: str):
 
 
 def run_code(code: str, df: pd.DataFrame):
+    """Execute generated pandas/numpy code in a restricted sandbox.
+
+    This validates the AST to block imports and dangerous names, executes the code
+    with a limited set of builtins, and ensures the executed code sets a
+    `result` variable. If `result` is missing we raise a clear ValueError so the
+    app doesn't crash with a KeyError.
+    """
     validate(code)
     env = {"df": df.copy(), "pd": pd, "np": np}
-    exec(code, {"__builtins__": SAFE_BUILTINS}, env)
+    try:
+        exec(code, {"__builtins__": SAFE_BUILTINS}, env)
+    except Exception as e:
+        raise RuntimeError(f"Error executing generated code: {e}") from e
+    if "result" not in env:
+        raise ValueError("The executed code did not set a variable named `result`.\n\nGenerated code:\n" + code)
     return env["result"]
 
 
