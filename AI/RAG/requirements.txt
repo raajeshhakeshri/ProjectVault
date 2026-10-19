@@ -1,0 +1,11 @@
+streamlit
+pandas
+numpy
+scikit-learn
+langchain-core
+langchain-openai
+# Only needed if you tick "Semantic embeddings" in the sidebar:
+langchain-community
+langchain-huggingface
+sentence-transformers
+faiss-cpu
