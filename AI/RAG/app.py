@@ -8,16 +8,20 @@ import pandas as pd
 import streamlit as st
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableLambda
 
 MAX_RETRIES = 3
 EXEC_TIMEOUT = 15        # seconds allowed for generated code
 MAX_INDEX_ROWS = 10000    # cap rows embedded for the text path
 
+
+# ------------------------------------------------------------------ LLM
+# Provider presets: base_url + suggested models (any OpenAI-compatible API works)
 PROVIDERS = {
     "DeepSeek": ("https://api.deepseek.com", ["deepseek-chat", "deepseek-reasoner"]),
     "OpenAI": ("https://api.openai.com/v1", ["gpt-4o", "gpt-4o-mini", "gpt-4.1"]),
     "Gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/",
-               ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview",'gemini-3.8-flash']),
+               ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"]),
     "Groq": ("https://api.groq.com/openai/v1",
              ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]),
     "OpenRouter": ("https://openrouter.ai/api/v1",
@@ -41,6 +45,43 @@ def get_llm(key: str, model: str, base_url: str):
         max_retries=2,
     )
 
+# Runtime open-source LLM, used automatically when no API key / model is provided
+LOCAL_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
+LOCAL_MAX_NEW_TOKENS = 512
+
+
+@st.cache_resource(show_spinner=False)
+def load_local_llm():
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    tok = AutoTokenizer.from_pretrained(LOCAL_MODEL)
+    model = AutoModelForCausalLM.from_pretrained(LOCAL_MODEL, torch_dtype="auto")
+    model.eval()
+    return tok, model
+
+
+def get_local_llm():
+    """Wraps the local HF model as a LangChain runnable (prompt value -> text)."""
+    tok, model = load_local_llm()
+    roles = {"human": "user", "system": "system", "ai": "assistant"}
+
+    def generate(prompt_value) -> str:
+        msgs = [{"role": roles.get(m.type, "user"), "content": m.content}
+                for m in prompt_value.to_messages()]
+        text = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        inputs = tok(text, return_tensors="pt").to(model.device)
+        out = model.generate(**inputs, max_new_tokens=LOCAL_MAX_NEW_TOKENS,
+                             do_sample=False)
+        return tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+
+    return RunnableLambda(generate)
+
+
+def resolve_llm(cfg: dict):
+    if cfg["local"]:
+        return get_local_llm()
+    return get_llm(cfg["api_key"], cfg["model"], cfg["base_url"])
+
+
 
 def read_csv(file) -> pd.DataFrame:
     for enc in ("utf-8", "utf-8-sig", "latin-1"):
@@ -63,6 +104,7 @@ def build_schema(df: pd.DataFrame) -> str:
             f"unique={s.nunique()}, sample={s.dropna().unique()[:3].tolist()}"
         )
     return "\n".join(lines)
+
 
 
 class TfidfRetriever:
@@ -98,20 +140,17 @@ class FaissRetriever:
         return [d.metadata["i"] for d in self.store.similarity_search(query, k=k)]
 
 
-def build_retriever(df: pd.DataFrame, use_embeddings: bool):
+def build_retriever(df: pd.DataFrame):
     texts = [
         ", ".join(f"{k}={v}" for k, v in r.items())
         for r in df.head(MAX_INDEX_ROWS).to_dict("records")
     ]
-    if use_embeddings:
-        try:
-            return FaissRetriever(texts), "FAISS + MiniLM embeddings"
-        except Exception as e:
-            return TfidfRetriever(texts), f"TF-IDF fallback ({type(e).__name__})"
-    return TfidfRetriever(texts), "TF-IDF"
+    try:
+        return FaissRetriever(texts), "FAISS + all-MiniLM-L6-v2 (semantic)"
+    except Exception as e:  # safety net if embedding packages/model are unavailable
+        return TfidfRetriever(texts), f"TF-IDF fallback ({type(e).__name__})"
 
 
-#SANDBOX
 SAFE_NAMES = ["len", "sum", "min", "max", "round", "abs", "sorted", "range", "list",
               "dict", "set", "tuple", "str", "int", "float", "bool", "enumerate", "zip",
               "any", "all", "map", "filter", "reversed", "isinstance", "pow", "divmod"]
@@ -132,8 +171,6 @@ def validate(code: str):
 
 def run_code(code: str, df: pd.DataFrame):
     validate(code)
-    # FIX: one shared namespace. Separate globals/locals broke list comprehensions,
-    # lambdas and .apply() because they could not see df / pd / np.
     env = {"__builtins__": SAFE_BUILTINS, "df": df.copy(), "pd": pd, "np": np}
     box = {}
 
@@ -166,7 +203,6 @@ def to_text(result) -> str:
     return str(result)
 
 
-#CHAINS
 def make_chains(llm):
     parse = StrOutputParser()
     route = ChatPromptTemplate.from_template(
@@ -215,7 +251,6 @@ Question: {query}"""
     return route, code, explain, text
 
 
-# AGENT
 def text_path(query, df, retriever, text_chain):
     ids = retriever.search(query, k=5)
     rows = [(i, ", ".join(f"{k}={v}" for k, v in df.iloc[i].items())) for i in ids]
@@ -254,7 +289,6 @@ def answer_query(query, df, schema, retriever, chains):
     return {"route": "text", "answer": answer, "rows": rows, "errors": errors}
 
 
-# UI
 def render(out: dict):
     st.caption(f"Route: {out['route']}")
     st.markdown(out["answer"])
@@ -274,15 +308,17 @@ def render(out: dict):
 
 
 def main():
-    st.set_page_config(page_title="Data Analytics Agent", page_icon="📊")
-    st.title("📊RAG Data Analytics")
+    st.set_page_config(page_title="RAG Data Analytics", page_icon="📊")
+    st.title("📊 Data Analytics")
 
     with st.sidebar:
         provider = st.selectbox("Provider (OpenAI-compatible)", list(PROVIDERS))
         default_url, models = PROVIDERS[provider]
         base_url = st.text_input("Base URL", value=default_url, key=f"url_{provider}",
                                  help="Any OpenAI-compatible endpoint")
-        api_key = st.text_input("API Key", type="password")
+        api_key = st.text_input(
+            "API Key (optional)", type="password",
+            help=f"Leave empty to run the open model {LOCAL_MODEL} locally")
         choice = st.selectbox("Model", models + [CUSTOM_MODEL], key=f"model_{provider}")
         if choice == CUSTOM_MODEL:
             model = st.text_input("Model name", key=f"custom_{provider}",
@@ -290,42 +326,50 @@ def main():
         else:
             model = choice
         uploaded = st.file_uploader("Upload CSV", type="csv")
-        use_emb = st.checkbox("Semantic embeddings (downloads ~90MB model)", value=False,
-                              help="Off = fast TF-IDF keyword retrieval")
+        use_local = not (api_key.strip() and model)
+        st.caption(f"LLM: local {LOCAL_MODEL}" if use_local else f"LLM: {model} via API")
 
-        ready = bool(api_key and model and uploaded)
+        ready = bool(uploaded)
         configure = st.button("⚙️ Configure & Index", type="primary",
                               disabled=not ready, use_container_width=True,
-                              help="Reads the CSV, builds the retrieval index and applies the model settings")
+                              help="Reads the CSV, builds the semantic index and loads the LLM")
 
     s = st.session_state
 
-    # Index and apply settings only when the button is clicked
     if configure:
         try:
             df = read_csv(uploaded)
         except Exception as e:
             st.error(f"Could not read CSV: {e}")
             st.stop()
-        with st.spinner("Indexing CSV..."):
-            retriever, label = build_retriever(df, use_emb)
+        with st.spinner("Indexing CSV (all-MiniLM-L6-v2 embeddings)..."):
+            retriever, label = build_retriever(df)
+        if use_local:
+            with st.spinner(f"Loading local model {LOCAL_MODEL} (first run downloads it)..."):
+                try:
+                    load_local_llm()
+                except Exception as e:
+                    st.error(f"Could not load the local model: {type(e).__name__}: {e}")
+                    st.stop()
         s.update(configured=True, df=df, schema=build_schema(df),
                  retriever=retriever, label=label, messages=[],
                  cfg={"api_key": api_key, "model": model, "base_url": base_url,
-                      "file": uploaded.name, "emb": use_emb})
+                      "file": uploaded.name, "local": use_local})
 
     if not s.get("configured"):
-        st.info("Fill in the sidebar (API key, model, CSV) and click **Configure & Index**.")
+        st.info("Upload a CSV (add an API key and model, or leave empty for the local model) "
+                "and click **Configure & Index**.")
         st.stop()
 
     cfg = s.cfg
-    st.sidebar.success(f"Active: {cfg['model']} | {cfg['file']}")
+    active = f"{LOCAL_MODEL} (local)" if cfg["local"] else cfg["model"]
+    st.sidebar.success(f"Active: {active} | {cfg['file']}")
     st.sidebar.caption(f"Retriever: {s.label}")
     current = {"api_key": api_key, "model": model, "base_url": base_url,
-               "file": uploaded.name if uploaded else None, "emb": use_emb}
+               "file": uploaded.name if uploaded else None, "local": use_local}
     if current != cfg:
         st.sidebar.warning("Settings changed. Click Configure & Index to apply.")
-    chains = make_chains(get_llm(cfg["api_key"], cfg["model"], cfg["base_url"]))
+    chains = make_chains(resolve_llm(cfg))
 
     with st.expander("Data preview and schema"):
         st.dataframe(s.df.head(10))
