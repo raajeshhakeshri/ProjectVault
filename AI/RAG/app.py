@@ -1,5 +1,5 @@
 """
-CSV RAG Agent: Streamlit + LangChain + DeepSeek  (fixed version)
+CSV RAG Agent: Streamlit + LangChain + any OpenAI-compatible LLM
 Run: streamlit run app.py
 """
 import ast
@@ -19,13 +19,28 @@ MAX_INDEX_ROWS = 5000    # cap rows embedded for the text path
 
 
 # ------------------------------------------------------------------ LLM
-def get_llm(key: str):
+# Provider presets: base_url + suggested models (any OpenAI-compatible API works)
+PROVIDERS = {
+    "DeepSeek": ("https://api.deepseek.com", ["deepseek-chat", "deepseek-reasoner"]),
+    "OpenAI": ("https://api.openai.com/v1", ["gpt-4o", "gpt-4o-mini", "gpt-4.1"]),
+    "Groq": ("https://api.groq.com/openai/v1",
+             ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]),
+    "OpenRouter": ("https://openrouter.ai/api/v1",
+                   ["openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet"]),
+    "Together": ("https://api.together.xyz/v1",
+                 ["meta-llama/Llama-3.3-70B-Instruct-Turbo"]),
+    "Custom": ("", []),
+}
+CUSTOM_MODEL = "Custom (type below)"
+
+
+def get_llm(key: str, model: str, base_url: str):
     from langchain_openai import ChatOpenAI
-    # DeepSeek exposes an OpenAI-compatible API
+    # Works with any OpenAI-compatible endpoint
     return ChatOpenAI(
-        model="deepseek-chat",
+        model=model,
         api_key=key,
-        base_url="https://api.deepseek.com",
+        base_url=base_url or None,
         temperature=0,
         timeout=60,
         max_retries=2,
@@ -271,13 +286,23 @@ def main():
     st.title("📊 CSV RAG Agent")
 
     with st.sidebar:
-        api_key = st.text_input("DeepSeek API Key", type="password")
+        provider = st.selectbox("Provider (OpenAI-compatible)", list(PROVIDERS))
+        default_url, models = PROVIDERS[provider]
+        base_url = st.text_input("Base URL", value=default_url, key=f"url_{provider}",
+                                 help="Any OpenAI-compatible endpoint")
+        api_key = st.text_input("API Key", type="password")
+        choice = st.selectbox("Model", models + [CUSTOM_MODEL], key=f"model_{provider}")
+        if choice == CUSTOM_MODEL:
+            model = st.text_input("Model name", key=f"custom_{provider}",
+                                  placeholder="e.g. gpt-4o-mini").strip()
+        else:
+            model = choice
         uploaded = st.file_uploader("Upload CSV", type="csv")
         use_emb = st.checkbox("Semantic embeddings (downloads ~90MB model)", value=False,
                               help="Off = fast TF-IDF keyword retrieval")
 
-    if not api_key or not uploaded:
-        st.info("Enter your DeepSeek API key and upload a CSV in the sidebar.")
+    if not api_key or not model or not uploaded:
+        st.info("Enter your API key, choose a model, and upload a CSV in the sidebar.")
         st.stop()
 
     key = (uploaded.name, uploaded.size, use_emb)
@@ -294,7 +319,7 @@ def main():
 
     s = st.session_state
     st.sidebar.caption(f"Retriever: {s.label}")
-    chains = make_chains(get_llm(api_key))
+    chains = make_chains(get_llm(api_key, model, base_url))
 
     with st.expander("Data preview and schema"):
         st.dataframe(s.df.head(10))
