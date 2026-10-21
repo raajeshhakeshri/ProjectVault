@@ -13,9 +13,6 @@ MAX_RETRIES = 3
 EXEC_TIMEOUT = 15        # seconds allowed for generated code
 MAX_INDEX_ROWS = 10000    # cap rows embedded for the text path
 
-
-# ------------------------------------------------------------------ LLM
-# Provider presets: base_url + suggested models (any OpenAI-compatible API works)
 PROVIDERS = {
     "DeepSeek": ("https://api.deepseek.com", ["deepseek-chat", "deepseek-reasoner"]),
     "OpenAI": ("https://api.openai.com/v1", ["gpt-4o", "gpt-4o-mini", "gpt-4.1"]),
@@ -45,7 +42,6 @@ def get_llm(key: str, model: str, base_url: str):
     )
 
 
-# ------------------------------------------------------------------ DATA
 def read_csv(file) -> pd.DataFrame:
     for enc in ("utf-8", "utf-8-sig", "latin-1"):
         try:
@@ -69,8 +65,6 @@ def build_schema(df: pd.DataFrame) -> str:
     return "\n".join(lines)
 
 
-# ------------------------------------------------------------------ RETRIEVERS
-# Both expose .search(query, k) -> list of row positions in df
 class TfidfRetriever:
     """No model download needed. Used as fallback."""
 
@@ -117,7 +111,7 @@ def build_retriever(df: pd.DataFrame, use_embeddings: bool):
     return TfidfRetriever(texts), "TF-IDF"
 
 
-# ------------------------------------------------------------------ SANDBOX
+#SANDBOX
 SAFE_NAMES = ["len", "sum", "min", "max", "round", "abs", "sorted", "range", "list",
               "dict", "set", "tuple", "str", "int", "float", "bool", "enumerate", "zip",
               "any", "all", "map", "filter", "reversed", "isinstance", "pow", "divmod"]
@@ -172,7 +166,7 @@ def to_text(result) -> str:
     return str(result)
 
 
-# ------------------------------------------------------------------ CHAINS
+#CHAINS
 def make_chains(llm):
     parse = StrOutputParser()
     route = ChatPromptTemplate.from_template(
@@ -221,7 +215,7 @@ Question: {query}"""
     return route, code, explain, text
 
 
-# ------------------------------------------------------------------ AGENT
+# AGENT
 def text_path(query, df, retriever, text_chain):
     ids = retriever.search(query, k=5)
     rows = [(i, ", ".join(f"{k}={v}" for k, v in df.iloc[i].items())) for i in ids]
@@ -260,7 +254,7 @@ def answer_query(query, df, schema, retriever, chains):
     return {"route": "text", "answer": answer, "rows": rows, "errors": errors}
 
 
-# ------------------------------------------------------------------ UI
+# UI
 def render(out: dict):
     st.caption(f"Route: {out['route']}")
     st.markdown(out["answer"])
@@ -281,7 +275,7 @@ def render(out: dict):
 
 def main():
     st.set_page_config(page_title="CSV RAG Agent", page_icon="📊")
-    st.title("📊 CSV RAG Agent")
+    st.title("📊RAG Data Analytics")
 
     with st.sidebar:
         provider = st.selectbox("Provider (OpenAI-compatible)", list(PROVIDERS))
