@@ -274,7 +274,7 @@ def render(out: dict):
 
 
 def main():
-    st.set_page_config(page_title="CSV RAG Agent", page_icon="📊")
+    st.set_page_config(page_title="Data Analytics Agent", page_icon="📊")
     st.title("📊RAG Data Analytics")
 
     with st.sidebar:
