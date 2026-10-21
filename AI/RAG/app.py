@@ -303,12 +303,15 @@ def main():
         use_emb = st.checkbox("Semantic embeddings (downloads ~90MB model)", value=False,
                               help="Off = fast TF-IDF keyword retrieval")
 
-    if not api_key or not model or not uploaded:
-        st.info("Enter your API key, choose a model, and upload a CSV in the sidebar.")
-        st.stop()
+        ready = bool(api_key and model and uploaded)
+        configure = st.button("⚙️ Configure & Index", type="primary",
+                              disabled=not ready, use_container_width=True,
+                              help="Reads the CSV, builds the retrieval index and applies the model settings")
 
-    key = (uploaded.name, uploaded.size, use_emb)
-    if st.session_state.get("key") != key:
+    s = st.session_state
+
+    # Index and apply settings only when the button is clicked
+    if configure:
         try:
             df = read_csv(uploaded)
         except Exception as e:
@@ -316,12 +319,23 @@ def main():
             st.stop()
         with st.spinner("Indexing CSV..."):
             retriever, label = build_retriever(df, use_emb)
-        st.session_state.update(key=key, df=df, schema=build_schema(df),
-                                retriever=retriever, label=label, messages=[])
+        s.update(configured=True, df=df, schema=build_schema(df),
+                 retriever=retriever, label=label, messages=[],
+                 cfg={"api_key": api_key, "model": model, "base_url": base_url,
+                      "file": uploaded.name, "emb": use_emb})
 
-    s = st.session_state
+    if not s.get("configured"):
+        st.info("Fill in the sidebar (API key, model, CSV) and click **Configure & Index**.")
+        st.stop()
+
+    cfg = s.cfg
+    st.sidebar.success(f"Active: {cfg['model']} | {cfg['file']}")
     st.sidebar.caption(f"Retriever: {s.label}")
-    chains = make_chains(get_llm(api_key, model, base_url))
+    current = {"api_key": api_key, "model": model, "base_url": base_url,
+               "file": uploaded.name if uploaded else None, "emb": use_emb}
+    if current != cfg:
+        st.sidebar.warning("Settings changed. Click Configure & Index to apply.")
+    chains = make_chains(get_llm(cfg["api_key"], cfg["model"], cfg["base_url"]))
 
     with st.expander("Data preview and schema"):
         st.dataframe(s.df.head(10))
