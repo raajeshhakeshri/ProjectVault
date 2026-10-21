@@ -377,7 +377,10 @@ def main():
 
     for m in s.messages:
         with st.chat_message(m["role"]):
-            st.markdown(m["content"]) if m["role"] == "user" else render(m["out"])
+            if m["role"] == "user":
+                st.markdown(m["content"])
+            else:
+                render(m["out"])
 
     if query := st.chat_input("Ask a question about your data"):
         s.messages.append({"role": "user", "content": query})
