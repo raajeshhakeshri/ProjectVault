@@ -23,6 +23,8 @@ MAX_INDEX_ROWS = 5000    # cap rows embedded for the text path
 PROVIDERS = {
     "DeepSeek": ("https://api.deepseek.com", ["deepseek-chat", "deepseek-reasoner"]),
     "OpenAI": ("https://api.openai.com/v1", ["gpt-4o", "gpt-4o-mini", "gpt-4.1"]),
+    "Gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/",
+               ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"]),
     "Groq": ("https://api.groq.com/openai/v1",
              ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]),
     "OpenRouter": ("https://openrouter.ai/api/v1",
